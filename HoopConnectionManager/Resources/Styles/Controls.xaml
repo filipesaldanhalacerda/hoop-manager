@@ -96,6 +96,12 @@
         <Setter Property="Margin" Value="0,3" />
     </Style>
 
+    <Style x:Key="SidebarButton" TargetType="Button" BasedOn="{StaticResource NavigationButton}">
+        <Setter Property="Foreground" Value="{DynamicResource NavigationForegroundBrush}" />
+        <Setter Property="Padding" Value="14,11" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
     <Style x:Key="FluentTextBox" TargetType="TextBox">
         <Setter Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />

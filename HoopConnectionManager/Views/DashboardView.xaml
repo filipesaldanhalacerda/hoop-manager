@@ -17,11 +17,10 @@
 
         <DataTemplate x:Key="ActiveTunnelTemplate">
             <Border Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource SuccessBrush}"
-                    BorderThickness="3,1,1,1"
-                    CornerRadius="8"
-                    Padding="14,11"
-                    Margin="0,0,0,7">
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,0,0,1"
+                    Padding="14,13"
+                    Margin="0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="26" />
@@ -73,12 +72,11 @@
         </DataTemplate>
 
         <DataTemplate x:Key="ConnectionRowTemplate">
-            <Border Background="{DynamicResource SurfaceBrush}"
+            <Border Background="Transparent"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="14"
-                    Margin="0,0,0,8">
+                    BorderThickness="0,0,0,1"
+                    Padding="12,14"
+                    Margin="0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -88,7 +86,10 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" FontSize="14" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE7B8;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="17" Margin="0,0,12,0" />
+                            <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" FontSize="13" />
+                        </StackPanel>
                         <TextBlock Text="{Binding Name}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" />
                     </StackPanel>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -112,7 +113,7 @@
                                 CommandParameter="{Binding}"
                                 IsEnabled="{Binding CanConnect}"
                                 Visibility="{Binding CanConnect, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                Style="{StaticResource FluentButton}"
+                                Style="{StaticResource SecondaryButton}"
                                 Margin="0,0,6,0" />
                         <Button Content="Desconectar"
                                 Command="{Binding DataContext.DisconnectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -139,9 +140,9 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel>
-                <TextBlock Text="CENTRAL OPERACIONAL" Style="{StaticResource EyebrowText}" />
-                <TextBlock Text="Central de conexões" Style="{StaticResource PageTitle}" Margin="0,3,0,0" />
-                <TextBlock Text="Túneis Hoop e endpoints locais em tempo real"
+                <TextBlock Text="Resources" Style="{StaticResource PageTitle}" Margin="0,3,0,0" />
+                <TextBlock Text="My Resources" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundBrush}" Margin="0,13,0,0" />
+                <TextBlock Text="Conecte bancos autorizados usando túneis locais seguros."
                            Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,3,0,0" />
             </StackPanel>
             <Border Grid.Column="1" Background="{DynamicResource SuccessSurfaceBrush}" CornerRadius="14"
@@ -156,15 +157,15 @@
         </Grid>
 
         <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,22">
-            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="18" Margin="0,0,10,0">
+            <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,1,0,1" CornerRadius="8,0,0,8" Padding="16">
                 <StackPanel><TextBlock Text="CONEXÕES DISPONÍVEIS" Style="{StaticResource MetricLabel}" />
                     <TextBlock Text="{Binding TotalConnections}" FontSize="26" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundBrush}" /></StackPanel>
             </Border>
-            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="18" Margin="0,0,10,0">
+            <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="16">
                 <StackPanel><TextBlock Text="TÚNEIS ATIVOS" Style="{StaticResource MetricLabel}" />
                     <TextBlock Text="{Binding ConnectedCount}" FontSize="26" FontWeight="SemiBold" Foreground="{DynamicResource SuccessBrush}" /></StackPanel>
             </Border>
-            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="18">
+            <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,1,1" CornerRadius="0,8,8,0" Padding="16">
                 <StackPanel><TextBlock Text="ESTADO OPERACIONAL" Style="{StaticResource MetricLabel}" />
                     <TextBlock Text="{Binding OperationalStatus}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundBrush}" Margin="0,5,0,0" /></StackPanel>
             </Border>
@@ -173,7 +174,7 @@
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <Grid Margin="0,0,0,10">
-                    <TextBlock Text="Bancos conectados" Style="{StaticResource SectionTitle}" />
+                    <TextBlock Text="Active Resources" Style="{StaticResource SectionTitle}" />
                     <TextBlock HorizontalAlignment="Right" Text="Cada túnel usa uma porta local exclusiva"
                                Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" VerticalAlignment="Bottom" />
                 </Grid>
@@ -184,17 +185,20 @@
                                Foreground="{DynamicResource ForegroundSecondaryBrush}" HorizontalAlignment="Center" />
                 </Border>
 
+                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True"
+                        Visibility="{Binding ActiveConnections.Count, Converter={StaticResource CountToInvertedVisibilityConverter}}">
                 <ItemsControl ItemsSource="{Binding ActiveConnections}"
                               ItemTemplate="{StaticResource ActiveTunnelTemplate}"
-                              Visibility="{Binding ActiveConnections.Count, Converter={StaticResource CountToInvertedVisibilityConverter}}">
+                              >
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate><StackPanel /></ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
+                </Border>
 
                 <Grid Margin="0,8,0,12">
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <TextBlock Text="Todas as conexões" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
+                    <TextBlock Text="Resource Catalog" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding SearchResultSummary}" HorizontalAlignment="Right" VerticalAlignment="Center"
                                Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" />
                     <Border Grid.Row="1" Margin="0,10,0,0" Background="{DynamicResource SurfaceSecondaryBrush}"
@@ -226,6 +230,7 @@
                     </Border>
                 </Grid>
 
+                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
                 <ListView ItemsSource="{Binding FilteredConnections}"
                           ItemTemplate="{StaticResource ConnectionRowTemplate}"
                           Style="{StaticResource FluentListView}"
@@ -241,6 +246,7 @@
                         </GroupStyle>
                     </ListView.GroupStyle>
                 </ListView>
+                </Border>
             </StackPanel>
         </ScrollViewer>
     </Grid>

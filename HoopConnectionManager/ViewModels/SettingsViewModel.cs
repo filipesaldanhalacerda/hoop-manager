@@ -16,6 +16,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IStartupService _startupService;
     private readonly INotificationService _notificationService;
     private readonly ILoggerService _logger;
+    private CancellationTokenSource? _themeSaveCancellation;
 
     [ObservableProperty]
     private string _hoopExecutablePath = string.Empty;
@@ -59,14 +60,13 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnSelectedThemeChanged(string value)
     {
         ThemeManager.ApplyTheme(value);
-        try
-        {
-            PersistTheme(value);
-        }
-        catch (Exception ex)
-        {
-            _notificationService.Show($"O tema foi aplicado, mas não pôde ser salvo: {ex.Message}", NotificationLevel.Warning);
-        }
+
+        var cancellation = new CancellationTokenSource();
+        var previous = Interlocked.Exchange(ref _themeSaveCancellation, cancellation);
+        previous?.Cancel();
+        previous?.Dispose();
+
+        _ = PersistThemeAsync(value, cancellation.Token);
     }
 
     [RelayCommand]
@@ -167,11 +167,25 @@ public sealed partial class SettingsViewModel : ObservableObject
         SelectedTheme = settings.Theme;
     }
 
-    private void PersistTheme(string theme)
+    private async Task PersistThemeAsync(string theme, CancellationToken cancellationToken)
     {
-        var settings = _settingsService.Load();
-        settings.Theme = theme;
-        _settingsService.SaveAsync(settings).GetAwaiter().GetResult();
+        try
+        {
+            // Evita várias gravações quando o usuário alterna rapidamente entre temas.
+            await Task.Delay(150, cancellationToken);
+            var settings = _settingsService.Load();
+            settings.Theme = theme;
+            await _settingsService.SaveAsync(settings, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Uma escolha mais recente substituiu esta.
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao persistir o tema selecionado.");
+            _notificationService.Show($"O tema foi aplicado, mas não pôde ser salvo: {ex.Message}", NotificationLevel.Warning);
+        }
     }
 
     private void ApplyStartupSetting()

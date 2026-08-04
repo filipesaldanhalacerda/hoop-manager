@@ -22,6 +22,11 @@ public sealed partial class LogsViewModel : ObservableObject
     [ObservableProperty] private string _summary = "Nenhum evento";
     [ObservableProperty] private bool _followLatest = true;
 
+    public bool HasSearchText => !string.IsNullOrWhiteSpace(SearchText);
+    public int InfoCount => Entries.Count(entry => entry.Level == "INFO");
+    public int WarningCount => Entries.Count(entry => entry.Level == "WARN");
+    public int ErrorCount => Entries.Count(entry => entry.Level == "ERROR");
+
     public string LogsDirectory => _logger.LogsDirectory;
 
     public LogsViewModel(ILoggerService logger)
@@ -38,11 +43,18 @@ public sealed partial class LogsViewModel : ObservableObject
         UpdateSummary();
     }
 
-    partial void OnSearchTextChanged(string value) => RefreshFilter();
+    partial void OnSearchTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasSearchText));
+        RefreshFilter();
+    }
     partial void OnSelectedLevelChanged(string value) => RefreshFilter();
 
     [RelayCommand]
     private void ClearSearch() => SearchText = string.Empty;
+
+    [RelayCommand]
+    private void SelectLevel(string? level) => SelectedLevel = level ?? "Todos";
 
     [RelayCommand]
     private void OpenLogsFolder()
@@ -60,6 +72,9 @@ public sealed partial class LogsViewModel : ObservableObject
             {
                 Entries.RemoveAt(0);
             }
+            OnPropertyChanged(nameof(InfoCount));
+            OnPropertyChanged(nameof(WarningCount));
+            OnPropertyChanged(nameof(ErrorCount));
             UpdateSummary();
         });
     }

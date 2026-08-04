@@ -28,6 +28,7 @@ public sealed partial class ConnectionViewModel : ObservableObject
         ConnectionStatus.Connecting => "Conectando",
         ConnectionStatus.Reconnecting => "Reconectando",
         ConnectionStatus.Connected => "Conectado",
+        ConnectionStatus.Disconnecting => "Desconectando",
         ConnectionStatus.Error => "Erro",
         _ => "Desconectado"
     };

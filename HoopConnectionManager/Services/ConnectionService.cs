@@ -1,5 +1,7 @@
 using HoopConnectionManager.Models;
 using HoopConnectionManager.Services.Abstractions;
+using System.Net;
+using System.Net.Sockets;
 
 namespace HoopConnectionManager.Services;
 
@@ -19,6 +21,7 @@ public sealed class ConnectionService : IConnectionService
     private readonly ILoggerService _logger;
     private readonly Dictionary<string, ActiveTunnel> _tunnels = new();
     private readonly HashSet<string> _desiredConnections = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _disconnectingConnections = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, CancellationTokenSource> _reconnectCancellations = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _lock = new();
 
@@ -47,7 +50,7 @@ public sealed class ConnectionService : IConnectionService
 
         lock (_lock)
         {
-            if (_desiredConnections.Contains(connectionName))
+            if (_desiredConnections.Contains(connectionName) || _disconnectingConnections.Contains(connectionName))
             {
                 throw new InvalidOperationException($"A conexão '{connectionName}' já está ativa ou sendo restabelecida.");
             }
@@ -102,21 +105,56 @@ public sealed class ConnectionService : IConnectionService
         lock (_lock)
         {
             _desiredConnections.Remove(connectionName);
-            _tunnels.Remove(connectionName, out tunnel);
+            _tunnels.TryGetValue(connectionName, out tunnel);
+            _disconnectingConnections.Add(connectionName);
             _reconnectCancellations.Remove(connectionName, out reconnectCancellation);
         }
 
         reconnectCancellation?.Cancel();
         reconnectCancellation?.Dispose();
 
-        if (tunnel is not null)
-        {
-            tunnel.Dispose();
-            await _hoopService.DisconnectAsync(connectionName);
-        }
+        RaiseChanged(connectionName, ConnectionStatus.Disconnecting, "Encerrando processo Hoop e validando a porta local.");
 
-        _logger.LogInformation($"Túnel '{connectionName}' finalizado manualmente.");
-        RaiseChanged(connectionName, ConnectionStatus.Disconnected);
+        try
+        {
+            if (tunnel is not null)
+            {
+                var port = tunnel.Credentials?.Port;
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+                await tunnel.StopAsync(timeout.Token);
+                await _hoopService.DisconnectAsync(connectionName);
+
+                if (port is not null)
+                {
+                    await WaitUntilPortIsClosedAsync(port.Value, timeout.Token);
+                }
+            }
+
+            lock (_lock)
+            {
+                if (tunnel is not null
+                    && _tunnels.TryGetValue(connectionName, out var current)
+                    && ReferenceEquals(current, tunnel))
+                {
+                    _tunnels.Remove(connectionName);
+                }
+                _disconnectingConnections.Remove(connectionName);
+            }
+
+            _logger.LogInformation($"Túnel '{connectionName}' finalizado e porta local confirmada como fechada.");
+            RaiseChanged(connectionName, ConnectionStatus.Disconnected, "Processo Hoop encerrado e porta local fechada.");
+        }
+        catch (Exception ex)
+        {
+            lock (_lock)
+            {
+                _disconnectingConnections.Remove(connectionName);
+            }
+            _logger.LogError(ex, $"Falha ao confirmar a desconexão de '{connectionName}'.");
+            RaiseChanged(connectionName, ConnectionStatus.Error, "Não foi possível confirmar o encerramento do túnel.");
+            throw new InvalidOperationException("Não foi possível confirmar que o túnel e a porta local foram encerrados.", ex);
+        }
     }
 
     public async Task DisconnectAllAsync()
@@ -170,7 +208,7 @@ public sealed class ConnectionService : IConnectionService
         {
             await tunnel.Process!.WaitForExitAsync(CancellationToken.None);
         }
-        catch (InvalidOperationException)
+        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException)
         {
             // O processo já foi descartado por uma desconexão manual.
             return;
@@ -283,10 +321,29 @@ public sealed class ConnectionService : IConnectionService
         {
             return tunnel.Process?.ExitCode;
         }
-        catch (InvalidOperationException)
+        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException)
         {
             return null;
         }
+    }
+
+    private static async Task WaitUntilPortIsClosedAsync(int port, CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                using var listener = new TcpListener(IPAddress.Loopback, port);
+                listener.Start();
+                return;
+            }
+            catch (SocketException)
+            {
+                await Task.Delay(100, cancellationToken);
+            }
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     private void RaiseChanged(string connectionName, ConnectionStatus status, string? detail = null)

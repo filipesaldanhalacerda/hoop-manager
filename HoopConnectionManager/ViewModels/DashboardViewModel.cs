@@ -274,7 +274,7 @@ public sealed partial class DashboardViewModel : ObservableObject
             connection.ConnectedAt = null;
             connection.Status = ConnectionStatus.Disconnected;
             SynchronizeActiveConnections();
-            _notificationService.Show($"Túnel de '{connection.DisplayName}' desconectado.");
+            _notificationService.Show($"Túnel de '{connection.DisplayName}' encerrado e porta local fechada. O DBeaver atualizará o estado na próxima operação.");
         }
         catch (Exception ex)
         {
