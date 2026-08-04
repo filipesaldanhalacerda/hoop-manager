@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using HoopConnectionManager.Configuration;
 using HoopConnectionManager.Models;
@@ -16,6 +18,8 @@ public sealed class HoopService : IHoopService
     private readonly ICommandRunner _commandRunner;
     private readonly ISettingsService _settingsService;
     private readonly ILoggerService _logger;
+    private readonly object _portLock = new();
+    private readonly HashSet<int> _reservedPorts = [];
 
     public string? ExecutablePath { get; private set; }
 
@@ -153,6 +157,7 @@ public sealed class HoopService : IHoopService
 
         _logger.LogInformation($"Iniciando conexão Hoop: {connectionName}");
 
+        var localPort = ReserveLocalPort();
         var processStartInfo = new ProcessStartInfo
         {
             FileName = ExecutablePath!,
@@ -164,6 +169,8 @@ public sealed class HoopService : IHoopService
         };
         processStartInfo.ArgumentList.Add("connect");
         processStartInfo.ArgumentList.Add(connectionName);
+        processStartInfo.ArgumentList.Add("--port");
+        processStartInfo.ArgumentList.Add(localPort.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
         var process = new Process { StartInfo = processStartInfo, EnableRaisingEvents = true };
 
@@ -204,9 +211,18 @@ public sealed class HoopService : IHoopService
             }
         });
 
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
+        try
+        {
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+        }
+        catch
+        {
+            ReleaseReservedPort(localPort);
+            process.Dispose();
+            throw;
+        }
 
         ConnectionCredentials? credentials;
         try { credentials = await credentialsCompletion.Task.WaitAsync(TimeSpan.FromSeconds(60), cancellationToken); }
@@ -214,7 +230,14 @@ public sealed class HoopService : IHoopService
         {
             try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
             process.Dispose();
+            ReleaseReservedPort(localPort);
             throw new TimeoutException("O Hoop não informou os dados do túnel em 60 segundos.");
+        }
+
+        catch
+        {
+            ReleaseReservedPort(localPort);
+            throw;
         }
 
         var tunnel = new ActiveTunnel
@@ -223,10 +246,52 @@ public sealed class HoopService : IHoopService
             Process = process,
             Credentials = credentials,
             Status = credentials is not null ? ConnectionStatus.Connected : ConnectionStatus.Error,
-            ErrorMessage = credentials is null ? "Não foi possível extrair credenciais do túnel." : null
+            ErrorMessage = credentials is null ? "Não foi possível extrair credenciais do túnel." : null,
+            ReleaseResources = () => ReleaseReservedPort(localPort)
         };
 
         return tunnel;
+    }
+
+    private int ReserveLocalPort()
+    {
+        lock (_portLock)
+        {
+            for (var port = 5433; port <= ushort.MaxValue; port++)
+            {
+                if (_reservedPorts.Contains(port) || !IsPortAvailable(port))
+                {
+                    continue;
+                }
+
+                _reservedPorts.Add(port);
+                return port;
+            }
+        }
+
+        throw new InvalidOperationException("Não há uma porta local disponível para abrir o túnel.");
+    }
+
+    private void ReleaseReservedPort(int port)
+    {
+        lock (_portLock)
+        {
+            _reservedPorts.Remove(port);
+        }
+    }
+
+    private static bool IsPortAvailable(int port)
+    {
+        try
+        {
+            using var listener = new TcpListener(IPAddress.Loopback, port);
+            listener.Start();
+            return true;
+        }
+        catch (SocketException)
+        {
+            return false;
+        }
     }
 
     public Task DisconnectAsync(string connectionName)

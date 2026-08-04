@@ -3,71 +3,78 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="clr-namespace:HoopConnectionManager.ViewModels"
         mc:Ignorable="d"
-        Title="{Binding Title}"
-        Height="700"
-        Width="1200"
-        MinHeight="500"
-        MinWidth="800"
+        Title="Hoop Control Center"
+        Height="780" Width="1320" MinHeight="640" MinWidth="1024"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource ForegroundBrush}"
         Style="{StaticResource FluentWindow}">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="260" />
+            <ColumnDefinition Width="232" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- Menu lateral -->
-        <Border Grid.Column="0"
-                Background="{DynamicResource SurfaceBrush}">
-            <Grid>
+        <Border Grid.Column="0" Background="{DynamicResource NavigationBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+            <Grid Margin="18,24">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0" Margin="24,32,24,24">
-                    <TextBlock Text="Hoop"
-                               FontSize="24"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource ForegroundBrush}" />
-                    <TextBlock Text="Connection Manager"
-                               FontSize="12"
-                               Foreground="{DynamicResource ForegroundSecondaryBrush}" />
+                <Grid Grid.Row="0" Margin="5,0,5,28">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Border Width="36" Height="36" CornerRadius="9" Background="{DynamicResource AccentBrush}">
+                        <TextBlock Text="H" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   FontFamily="{DynamicResource DisplayFontFamily}" FontSize="19" FontWeight="Bold" Foreground="#04121B" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="HOOP" FontFamily="{DynamicResource DisplayFontFamily}" FontSize="15" FontWeight="Bold" />
+                        <TextBlock Text="CONTROL CENTER" Style="{StaticResource EyebrowText}" FontSize="9" />
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel Grid.Row="1" Margin="0,0,0,8">
+                    <TextBlock Text="OPERAÇÃO" Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                               FontSize="10" FontWeight="SemiBold" Margin="14,0,0,8" />
+                    <Button Command="{Binding NavigateToDashboardCommand}" Style="{StaticResource NavigationButton}">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="⌁" FontSize="19" Width="30" />
+                            <TextBlock Text="Conexões" VerticalAlignment="Center" /></StackPanel>
+                    </Button>
+                    <Button Command="{Binding NavigateToSettingsCommand}" Style="{StaticResource NavigationButton}">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="⚙" FontSize="16" Width="30" />
+                            <TextBlock Text="Configurações" VerticalAlignment="Center" /></StackPanel>
+                    </Button>
                 </StackPanel>
 
-                <StackPanel Grid.Row="1" Margin="12,0">
-                    <Button Content="Dashboard"
-                            Command="{Binding NavigateToDashboardCommand}"
-                            Style="{StaticResource FluentButton}"
-                            HorizontalAlignment="Stretch"
-                            Margin="0,8" />
-
-                    <Button Content="Configurações"
-                            Command="{Binding NavigateToSettingsCommand}"
-                            Style="{StaticResource FluentButton}"
-                            HorizontalAlignment="Stretch"
-                            Margin="0,8" />
-                </StackPanel>
-
-                <StackPanel Grid.Row="2" Margin="24">
-                    <TextBlock Text="{Binding StatusMessage}"
-                               FontSize="12"
-                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                               TextWrapping="Wrap" />
-                </StackPanel>
+                <Border Grid.Row="3" Style="{StaticResource CardBorder}" Padding="14" Background="{DynamicResource SurfaceBrush}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="7" Height="7" Fill="{DynamicResource SuccessBrush}" Margin="0,0,8,0" />
+                            <TextBlock Text="SISTEMA OPERACIONAL" Foreground="{DynamicResource SuccessBrush}" FontSize="9" FontWeight="Bold" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                   FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 
-        <!-- Área de conteúdo -->
-        <Border Grid.Column="1"
-                Background="{DynamicResource BackgroundBrush}">
-            <ContentControl Content="{Binding CurrentViewModel}"
-                            Margin="24" />
-        </Border>
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions><RowDefinition Height="52" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <Border Grid.Row="0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Background="{DynamicResource BackgroundBrush}">
+                <Grid Margin="30,0">
+                    <TextBlock Text="AMBIENTE SEGURO • TÚNEIS GERENCIADOS LOCALMENTE"
+                               Style="{StaticResource EyebrowText}" VerticalAlignment="Center" />
+                    <TextBlock Text="Hoop CLI" HorizontalAlignment="Right" VerticalAlignment="Center"
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" />
+                </Grid>
+            </Border>
+            <ContentControl Grid.Row="1" Content="{Binding CurrentViewModel}" Margin="30,26,30,30" />
+        </Grid>
     </Grid>
 </Window>

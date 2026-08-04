@@ -17,11 +17,33 @@ public sealed partial class ConnectionViewModel : ObservableObject
     [ObservableProperty] private int? _port;
     [ObservableProperty] private string? _username;
     [ObservableProperty] private string? _password;
+    [ObservableProperty] private DateTime? _connectedAt;
+
+    public bool CanConnect => Status is ConnectionStatus.Disconnected or ConnectionStatus.Error;
+    public bool CanDisconnect => Status == ConnectionStatus.Connected;
+    public string LocalEndpoint => Host is not null && Port is not null ? $"{Host}:{Port}" : "Aguardando túnel";
+    public string ConnectionStateLabel => Status switch
+    {
+        ConnectionStatus.Connecting => "Conectando",
+        ConnectionStatus.Connected => "Conectado",
+        ConnectionStatus.Error => "Erro",
+        _ => "Desconectado"
+    };
 
     public void SetCredentials(ConnectionCredentials credentials)
     { Host = credentials.Host; Port = credentials.Port; Username = credentials.Username; Password = credentials.Password; }
 
     public void ClearCredentials() { Host = null; Port = null; Username = null; Password = null; }
+
+    partial void OnStatusChanged(ConnectionStatus value)
+    {
+        OnPropertyChanged(nameof(CanConnect));
+        OnPropertyChanged(nameof(CanDisconnect));
+        OnPropertyChanged(nameof(ConnectionStateLabel));
+    }
+
+    partial void OnHostChanged(string? value) => OnPropertyChanged(nameof(LocalEndpoint));
+    partial void OnPortChanged(int? value) => OnPropertyChanged(nameof(LocalEndpoint));
 
     public ConnectionViewModel(Connection connection)
     {

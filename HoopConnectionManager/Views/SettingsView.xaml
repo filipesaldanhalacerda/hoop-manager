@@ -3,117 +3,103 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             mc:Ignorable="d"
-             d:DesignHeight="600"
-             d:DesignWidth="1000">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+             mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="1050">
+    <Grid Style="{StaticResource PageRoot}">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="Configurações"
-                   FontSize="28"
-                   FontWeight="SemiBold"
-                   Foreground="{DynamicResource ForegroundBrush}"
-                   Margin="0,0,0,24" />
+        <Grid Grid.Row="0" Margin="0,0,0,22">
+            <StackPanel>
+                <TextBlock Text="PREFERÊNCIAS DO SISTEMA" Style="{StaticResource EyebrowText}" />
+                <TextBlock Text="Configurações" Style="{StaticResource PageTitle}" Margin="0,3,0,0" />
+                <TextBlock Text="Controle integrações, inicialização e aparência do aplicativo."
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,5,0,0" />
+            </StackPanel>
+        </Grid>
 
-        <Border Grid.Row="1"
-                Background="{DynamicResource SurfaceBrush}"
-                CornerRadius="8"
-                Padding="32">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel>
-                    <TextBlock Text="Caminhos"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource ForegroundBrush}"
-                               Margin="0,0,0,16" />
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <Grid Margin="0,0,10,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="3*" /><ColumnDefinition Width="20" /><ColumnDefinition Width="2*" /></Grid.ColumnDefinitions>
 
-                    <TextBlock Text="hoop.exe"
-                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                               FontSize="12"
-                               Margin="0,0,0,4" />
-                    <Grid Margin="0,0,0,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0"
-                                 Text="{Binding HoopExecutablePath}"
-                                 Style="{StaticResource FluentTextBox}" />
-                        <Button Grid.Column="1"
-                                Content="Procurar"
-                                Command="{Binding BrowseHoopExecutableCommand}"
-                                Style="{StaticResource FluentButton}"
-                                Margin="8,0,0,0" />
-                    </Grid>
+                <StackPanel Grid.Column="0">
+                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,18">
+                        <StackPanel>
+                            <TextBlock Text="INTEGRAÇÕES" Style="{StaticResource EyebrowText}" />
+                            <TextBlock Text="Executáveis detectados" Style="{StaticResource SectionHeading}" Margin="0,5,0,4" />
+                            <TextBlock Text="Esses caminhos são usados para iniciar o Hoop e abrir o DBeaver após criar um túnel."
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,20" />
 
-                    <TextBlock Text="DBeaver"
-                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                               FontSize="12"
-                               Margin="0,0,0,4" />
-                    <Grid Margin="0,0,0,24">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0"
-                                 Text="{Binding DbeaverExecutablePath}"
-                                 Style="{StaticResource FluentTextBox}" />
-                        <Button Grid.Column="1"
-                                Content="Procurar"
-                                Command="{Binding BrowseDBeaverExecutableCommand}"
-                                Style="{StaticResource FluentButton}"
-                                Margin="8,0,0,0" />
-                    </Grid>
+                            <TextBlock Text="Hoop CLI" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" />
+                            <TextBlock Text="Executável responsável pela autenticação e pelos túneis locais."
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" Margin="0,2,0,7" />
+                            <Grid Margin="0,0,0,18">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding HoopExecutablePath}" Style="{StaticResource FluentTextBox}" FontFamily="{DynamicResource MonoFontFamily}" FontSize="12" />
+                                <Button Grid.Column="1" Content="Localizar" Command="{Binding BrowseHoopExecutableCommand}"
+                                        Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" />
+                            </Grid>
 
-                    <TextBlock Text="Comportamento"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource ForegroundBrush}"
-                               Margin="0,0,0,16" />
+                            <TextBlock Text="DBeaver" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" />
+                            <TextBlock Text="Cliente que será aberto automaticamente com o endpoint local."
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" Margin="0,2,0,7" />
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding DbeaverExecutablePath}" Style="{StaticResource FluentTextBox}" FontFamily="{DynamicResource MonoFontFamily}" FontSize="12" />
+                                <Button Grid.Column="1" Content="Localizar" Command="{Binding BrowseDBeaverExecutableCommand}"
+                                        Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
 
-                    <CheckBox Content="Abrir com o Windows"
-                              IsChecked="{Binding StartWithWindows}"
-                              Foreground="{DynamicResource ForegroundBrush}"
-                              Margin="0,8" />
-
-                    <CheckBox Content="Minimizar para bandeja"
-                              IsChecked="{Binding MinimizeToTray}"
-                              Foreground="{DynamicResource ForegroundBrush}"
-                              Margin="0,8" />
-
-                    <CheckBox Content="Abrir DBeaver automaticamente"
-                              IsChecked="{Binding OpenDBeaverAutomatically}"
-                              Foreground="{DynamicResource ForegroundBrush}"
-                              Margin="0,8" />
-
-                    <CheckBox Content="Atualizar conexões ao iniciar"
-                              IsChecked="{Binding RefreshConnectionsOnStartup}"
-                              Foreground="{DynamicResource ForegroundBrush}"
-                              Margin="0,8,0,24" />
-
-                    <TextBlock Text="Aparência"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource ForegroundBrush}"
-                               Margin="0,0,0,16" />
-
-                    <ComboBox ItemsSource="{Binding Themes}"
-                              SelectedItem="{Binding SelectedTheme}"
-                              Foreground="{DynamicResource ForegroundBrush}"
-                              Background="{DynamicResource SurfaceSecondaryBrush}"
-                              BorderBrush="{DynamicResource BorderBrush}"
-                              Margin="0,0,0,24" />
-
-                    <Button Content="Salvar Configurações"
-                            Command="{Binding SaveCommand}"
-                            Style="{StaticResource FluentButton}"
-                            HorizontalAlignment="Left" />
+                    <Border Style="{StaticResource CardBorder}">
+                        <StackPanel>
+                            <TextBlock Text="COMPORTAMENTO" Style="{StaticResource EyebrowText}" />
+                            <TextBlock Text="Automação" Style="{StaticResource SectionHeading}" Margin="0,5,0,14" />
+                            <CheckBox Content="Iniciar o gerenciador com o Windows" IsChecked="{Binding StartWithWindows}"
+                                      Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
+                            <CheckBox Content="Continuar executando na bandeja ao fechar a janela" IsChecked="{Binding MinimizeToTray}"
+                                      Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
+                            <CheckBox Content="Abrir o DBeaver automaticamente após conectar" IsChecked="{Binding OpenDBeaverAutomatically}"
+                                      Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
+                            <CheckBox Content="Atualizar a lista de conexões ao iniciar" IsChecked="{Binding RefreshConnectionsOnStartup}"
+                                      Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
-            </ScrollViewer>
+
+                <StackPanel Grid.Column="2">
+                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,18">
+                        <StackPanel>
+                            <TextBlock Text="APARÊNCIA" Style="{StaticResource EyebrowText}" />
+                            <TextBlock Text="Tema da interface" Style="{StaticResource SectionHeading}" Margin="0,5,0,6" />
+                            <TextBlock Text="Use o tema do Windows ou escolha uma preferência fixa."
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,14" />
+                            <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}"
+                                      Background="{DynamicResource SurfaceSecondaryBrush}" Foreground="{DynamicResource ForegroundBrush}"
+                                      BorderBrush="{DynamicResource BorderBrush}" Padding="10,8" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource CardBorder}" Background="{DynamicResource AccentSoftBrush}">
+                        <StackPanel>
+                            <TextBlock Text="COMO FUNCIONA" Style="{StaticResource EyebrowText}" />
+                            <TextBlock Text="Fluxo de conexão" Style="{StaticResource SectionHeading}" Margin="0,5,0,12" />
+                            <TextBlock Text="01  O Hoop abre um túnel seguro" Foreground="{DynamicResource ForegroundBrush}" Margin="0,4" />
+                            <TextBlock Text="02  Uma porta local exclusiva é reservada" Foreground="{DynamicResource ForegroundBrush}" Margin="0,4" />
+                            <TextBlock Text="03  O DBeaver usa esse endpoint local" Foreground="{DynamicResource ForegroundBrush}" Margin="0,4" />
+                            <TextBlock Text="Senhas temporárias permanecem somente em memória."
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,18,0,0" Margin="0,20,0,0">
+            <Grid>
+                <TextBlock Text="As alterações entram em vigor após salvar."
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}" VerticalAlignment="Center" />
+                <Button Content="Salvar configurações" Command="{Binding SaveCommand}" Style="{StaticResource FluentButton}" HorizontalAlignment="Right" />
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

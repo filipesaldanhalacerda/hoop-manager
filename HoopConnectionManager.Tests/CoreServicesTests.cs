@@ -81,10 +81,32 @@ public sealed class ConnectionServiceTests
         Assert.IsFalse(service.IsConnected("dev"));
     }
 
+    [TestMethod]
+    public async Task TracksMultipleTunnelsAtTheSameTime()
+    {
+        var service = new ConnectionService(new FakeHoopService(), new FakeLogger());
+
+        var first = await service.ConnectAsync("orders-dev");
+        var second = await service.ConnectAsync("payments-prd");
+
+        Assert.AreEqual(2, service.ActiveTunnels.Count);
+        Assert.AreNotEqual(first.Credentials!.Port, second.Credentials!.Port);
+        Assert.IsTrue(service.IsConnected("orders-dev"));
+        Assert.IsTrue(service.IsConnected("payments-prd"));
+
+        await service.DisconnectAllAsync();
+    }
+
     private sealed class FakeHoopService : IHoopService
     {
+        private int _nextPort = 5432;
         public string? ExecutablePath => "hoop.exe";
-        public Task<ActiveTunnel> ConnectAsync(string name, CancellationToken token = default) => Task.FromResult(new ActiveTunnel { ConnectionName = name, Status = ConnectionStatus.Connected });
+        public Task<ActiveTunnel> ConnectAsync(string name, CancellationToken token = default) => Task.FromResult(new ActiveTunnel
+        {
+            ConnectionName = name,
+            Status = ConnectionStatus.Connected,
+            Credentials = new ConnectionCredentials("127.0.0.1", Interlocked.Increment(ref _nextPort), "hoop", "temporary")
+        });
         public Task DisconnectAsync(string name) => Task.CompletedTask;
         public Task<IReadOnlyList<Connection>> GetConnectionsAsync(CancellationToken token = default) => Task.FromResult<IReadOnlyList<Connection>>([]);
         public Task<UserSession> GetSessionAsync(CancellationToken token = default) => Task.FromResult(new UserSession());

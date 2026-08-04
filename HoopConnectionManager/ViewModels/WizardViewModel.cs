@@ -1,8 +1,6 @@
-using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HoopConnectionManager.Services.Abstractions;
-using Microsoft.Win32;
 
 namespace HoopConnectionManager.ViewModels;
 
@@ -12,7 +10,6 @@ namespace HoopConnectionManager.ViewModels;
 public sealed partial class WizardViewModel : ObservableObject
 {
     private readonly IHoopService _hoopService;
-    private readonly IInstallerService _installerService;
     private readonly ILoginService _loginService;
     private readonly IDBeaverService _dbeaverService;
     private readonly INavigationService _navigationService;
@@ -31,15 +28,6 @@ public sealed partial class WizardViewModel : ObservableObject
     private string _statusMessage = "Clique em Verificar Instalação para localizar o Hoop.";
 
     [ObservableProperty]
-    private int _installerProgress;
-
-    [ObservableProperty]
-    private string _installerLog = string.Empty;
-
-    [ObservableProperty]
-    private string _installerScriptPath = string.Empty;
-
-    [ObservableProperty]
     private string? _dbeaverPath;
 
     [ObservableProperty]
@@ -49,7 +37,6 @@ public sealed partial class WizardViewModel : ObservableObject
 
     public WizardViewModel(
         IHoopService hoopService,
-        IInstallerService installerService,
         ILoginService loginService,
         IDBeaverService dbeaverService,
         INavigationService navigationService,
@@ -59,7 +46,6 @@ public sealed partial class WizardViewModel : ObservableObject
         ILoggerService logger)
     {
         _hoopService = hoopService;
-        _installerService = installerService;
         _loginService = loginService;
         _dbeaverService = dbeaverService;
         _navigationService = navigationService;
@@ -67,12 +53,6 @@ public sealed partial class WizardViewModel : ObservableObject
         _firstRunService = firstRunService;
         _settingsService = settingsService;
         _logger = logger;
-
-        _installerService.ProgressChanged += (_, e) =>
-        {
-            InstallerProgress = e.PercentComplete;
-            InstallerLog += $"{e.Message}{Environment.NewLine}";
-        };
     }
 
     [RelayCommand]
@@ -93,7 +73,7 @@ public sealed partial class WizardViewModel : ObservableObject
                 return;
             }
 
-            StatusMessage = "Hoop não encontrado. Selecione o script oficial para instalá-lo.";
+            StatusMessage = "Hoop não encontrado. Confirme a instalação e tente novamente.";
             _notificationService.Show("Hoop não encontrado neste computador.", NotificationLevel.Warning);
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested)
@@ -106,48 +86,6 @@ public sealed partial class WizardViewModel : ObservableObject
             _logger.LogError(ex, "Falha ao verificar a instalação do Hoop.");
             StatusMessage = "Não foi possível verificar a instalação. Tente novamente.";
             _notificationService.Show($"Erro ao verificar o Hoop: {ex.Message}", NotificationLevel.Error);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    [RelayCommand]
-    private void BrowseInstaller()
-    {
-        var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Selecione o instalador oficial do Hoop", Filter = "Scripts (*.ps1;*.cmd;*.bat)|*.ps1;*.cmd;*.bat" };
-        if (dialog.ShowDialog() == true) InstallerScriptPath = dialog.FileName;
-    }
-
-    [RelayCommand]
-    private async Task InstallHoopAsync()
-    {
-        if (string.IsNullOrWhiteSpace(InstallerScriptPath) || !File.Exists(InstallerScriptPath))
-        {
-            _notificationService.Show("Selecione o script oficial de instalação do Hoop.", NotificationLevel.Warning);
-            return;
-        }
-
-        IsBusy = true;
-        InstallerProgress = 0;
-        InstallerLog = string.Empty;
-
-        try
-        {
-            var installed = await _installerService.InstallAsync(InstallerScriptPath);
-            if (installed)
-            {
-                CurrentStep = 2;
-            }
-            else
-            {
-                _notificationService.Show("A instalação foi concluída, mas o Hoop não foi localizado.", NotificationLevel.Warning);
-            }
-        }
-        catch (Exception ex)
-        {
-            _notificationService.Show($"Erro na instalação: {ex.Message}", NotificationLevel.Error);
         }
         finally
         {

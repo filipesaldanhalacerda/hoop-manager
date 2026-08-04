@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HoopConnectionManager.Models;
@@ -20,6 +21,8 @@ public sealed partial class DashboardViewModel : ObservableObject
     private readonly ISettingsService _settingsService;
     private readonly INotificationService _notificationService;
     private readonly ILoggerService _logger;
+    private readonly DispatcherTimer _statusRefreshTimer;
+    private bool _statusRefreshInProgress;
 
     [ObservableProperty]
     private string _searchText = string.Empty;
@@ -33,7 +36,17 @@ public sealed partial class DashboardViewModel : ObservableObject
     [ObservableProperty]
     private bool _isBusy;
 
+    [ObservableProperty]
+    private int _connectedCount;
+
+    [ObservableProperty]
+    private int _totalConnections;
+
+    [ObservableProperty]
+    private string _operationalStatus = "Nenhum túnel ativo";
+
     public ObservableCollection<ConnectionViewModel> Connections { get; } = new();
+    public ObservableCollection<ConnectionViewModel> ActiveConnections { get; } = new();
     public ObservableCollection<ConnectionViewModel> FavoriteConnections { get; } = new();
     public ObservableCollection<ConnectionViewModel> RecentConnections { get; } = new();
 
@@ -56,7 +69,11 @@ public sealed partial class DashboardViewModel : ObservableObject
 
         _connectionService.ActiveTunnelsChanged += (_, e) =>
         {
-            UpdateConnectionStatus(e.ConnectionName, e.IsConnected);
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                UpdateConnectionStatus(e.ConnectionName, e.IsConnected);
+                SynchronizeActiveConnections();
+            });
         };
 
         FilteredConnections = CollectionViewSource.GetDefaultView(Connections);
@@ -73,6 +90,14 @@ public sealed partial class DashboardViewModel : ObservableObject
         };
 
         FilteredConnections.Filter = FilterConnection;
+
+        _statusRefreshTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMinutes(2)
+        };
+        _statusRefreshTimer.Tick += async (_, _) => await RefreshStatusAutomaticallyAsync();
+        _statusRefreshTimer.Start();
+
         _ = LoadConnectionsAsync();
     }
 
@@ -95,10 +120,19 @@ public sealed partial class DashboardViewModel : ObservableObject
             foreach (var connection in connections)
             {
                 connection.IsFavorite = settings.FavoriteConnectionIds.Contains(connection.Id);
-                Connections.Add(new ConnectionViewModel(connection));
+                var viewModel = new ConnectionViewModel(connection);
+                if (_connectionService.ActiveTunnels.TryGetValue(connection.Name, out var tunnel)
+                    && tunnel.Credentials is not null)
+                {
+                    viewModel.SetCredentials(tunnel.Credentials);
+                    viewModel.ConnectedAt = tunnel.StartedAt;
+                    viewModel.Status = ConnectionStatus.Connected;
+                }
+                Connections.Add(viewModel);
             }
 
             RefreshFavoritesAndRecents();
+            SynchronizeActiveConnections();
             FilteredConnections.Refresh();
         }
         catch (Exception ex)
@@ -129,7 +163,9 @@ public sealed partial class DashboardViewModel : ObservableObject
             var tunnel = await _connectionService.ConnectAsync(connection.Name);
             connection.Status = tunnel.Status;
             if (tunnel.Credentials is not null) connection.SetCredentials(tunnel.Credentials);
+            connection.ConnectedAt = tunnel.StartedAt;
             connection.LastUsedAt = DateTime.Now;
+            SynchronizeActiveConnections();
 
             await PersistRecentConnectionAsync(connection);
             RefreshFavoritesAndRecents();
@@ -167,10 +203,25 @@ public sealed partial class DashboardViewModel : ObservableObject
             return;
         }
 
-        await _connectionService.DisconnectAsync(connection.Name);
-        connection.ClearCredentials();
-        connection.Status = ConnectionStatus.Disconnected;
-        _notificationService.Show($"Desconectado de '{connection.Name}'.");
+        IsBusy = true;
+        try
+        {
+            await _connectionService.DisconnectAsync(connection.Name);
+            connection.ClearCredentials();
+            connection.ConnectedAt = null;
+            connection.Status = ConnectionStatus.Disconnected;
+            SynchronizeActiveConnections();
+            _notificationService.Show($"Túnel de '{connection.DisplayName}' desconectado.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Falha ao desconectar '{connection.Name}'.");
+            _notificationService.Show($"Erro ao desconectar: {ex.Message}", NotificationLevel.Error);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]
@@ -225,12 +276,32 @@ public sealed partial class DashboardViewModel : ObservableObject
         _notificationService.Show($"{label} copiado para a área de transferência.");
     }
 
-    [RelayCommand]
-    private async Task RefreshUserStatusAsync()
+    private async Task RefreshStatusAutomaticallyAsync()
     {
-        var session = await _hoopService.GetSessionAsync();
-        UserEmail = session.Email;
-        UserStatusMessage = session.IsAuthenticated ? "Logado" : "Deslogado";
+        if (_statusRefreshInProgress)
+        {
+            return;
+        }
+
+        _statusRefreshInProgress = true;
+        try
+        {
+            // A sincronização dos processos é local e praticamente gratuita.
+            SynchronizeActiveConnections();
+
+            // A consulta remota ocorre somente a cada dois minutos.
+            var session = await _hoopService.GetSessionAsync();
+            UserEmail = session.Email;
+            UserStatusMessage = session.IsAuthenticated ? "Logado" : "Deslogado";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Não foi possível atualizar o status automaticamente: {ex.Message}");
+        }
+        finally
+        {
+            _statusRefreshInProgress = false;
+        }
     }
 
     private bool FilterConnection(object? obj)
@@ -271,7 +342,34 @@ public sealed partial class DashboardViewModel : ObservableObject
         if (connection is not null)
         {
             connection.Status = isConnected ? ConnectionStatus.Connected : ConnectionStatus.Disconnected;
+            if (!isConnected)
+            {
+                connection.ClearCredentials();
+                connection.ConnectedAt = null;
+            }
         }
+    }
+
+    private void SynchronizeActiveConnections()
+    {
+        ActiveConnections.Clear();
+        foreach (var connection in Connections.Where(c => _connectionService.IsConnected(c.Name)).OrderBy(c => c.DisplayName))
+        {
+            if (_connectionService.ActiveTunnels.TryGetValue(connection.Name, out var tunnel)
+                && tunnel.Credentials is not null)
+            {
+                connection.SetCredentials(tunnel.Credentials);
+                connection.ConnectedAt = tunnel.StartedAt;
+                connection.Status = ConnectionStatus.Connected;
+            }
+            ActiveConnections.Add(connection);
+        }
+
+        ConnectedCount = ActiveConnections.Count;
+        TotalConnections = Connections.Count;
+        OperationalStatus = ConnectedCount == 0
+            ? "Nenhum túnel ativo"
+            : ConnectedCount == 1 ? "1 túnel ativo" : $"{ConnectedCount} túneis ativos";
     }
 
     private void RefreshFavoritesAndRecents()

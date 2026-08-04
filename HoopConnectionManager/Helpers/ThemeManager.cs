@@ -42,20 +42,37 @@ public static class ThemeManager
 
         if (isDark)
         {
-            resources["BackgroundBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(32, 32, 32));
-            resources["SurfaceBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(45, 45, 45));
-            resources["SurfaceSecondaryBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(58, 58, 58));
-            resources["ForegroundBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.White);
-            resources["ForegroundSecondaryBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(170, 170, 170));
+            SetBrush(resources, "BackgroundBrush", 7, 17, 29);
+            SetBrush(resources, "NavigationBrush", 9, 21, 33);
+            SetBrush(resources, "SurfaceBrush", 16, 31, 46);
+            SetBrush(resources, "SurfaceSecondaryBrush", 22, 42, 60);
+            SetBrush(resources, "ElevatedBrush", 26, 49, 69);
+            SetBrush(resources, "ForegroundBrush", 242, 247, 250);
+            SetBrush(resources, "ForegroundSecondaryBrush", 145, 166, 183);
+            SetBrush(resources, "BorderBrush", 40, 66, 87);
+            SetBrush(resources, "AccentSoftBrush", 22, 61, 82);
+            SetBrush(resources, "SuccessSurfaceBrush", 22, 63, 55);
+            SetBrush(resources, "ErrorSurfaceBrush", 73, 33, 43);
         }
         else
         {
-            resources["BackgroundBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(243, 243, 243));
-            resources["SurfaceBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255));
-            resources["SurfaceSecondaryBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(240, 240, 240));
-            resources["ForegroundBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(32, 32, 32));
-            resources["ForegroundSecondaryBrush"] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(96, 96, 96));
+            SetBrush(resources, "BackgroundBrush", 237, 244, 248);
+            SetBrush(resources, "NavigationBrush", 223, 235, 242);
+            SetBrush(resources, "SurfaceBrush", 255, 255, 255);
+            SetBrush(resources, "SurfaceSecondaryBrush", 239, 246, 249);
+            SetBrush(resources, "ElevatedBrush", 228, 239, 245);
+            SetBrush(resources, "ForegroundBrush", 12, 31, 44);
+            SetBrush(resources, "ForegroundSecondaryBrush", 79, 105, 122);
+            SetBrush(resources, "BorderBrush", 190, 211, 222);
+            SetBrush(resources, "AccentSoftBrush", 214, 240, 249);
+            SetBrush(resources, "SuccessSurfaceBrush", 216, 244, 233);
+            SetBrush(resources, "ErrorSurfaceBrush", 255, 229, 233);
         }
+    }
+
+    private static void SetBrush(ResourceDictionary resources, string key, byte red, byte green, byte blue)
+    {
+        resources[key] = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(red, green, blue));
     }
 
     private static bool IsSystemDarkTheme()

@@ -44,6 +44,12 @@ public sealed class ConnectionService : IConnectionService
         _logger.LogInformation($"Conectando a '{connectionName}'.");
         var tunnel = await _hoopService.ConnectAsync(connectionName, cancellationToken);
 
+        if (tunnel.Status != ConnectionStatus.Connected || tunnel.Credentials is null)
+        {
+            tunnel.Dispose();
+            throw new InvalidOperationException(tunnel.ErrorMessage ?? $"O túnel '{connectionName}' não ficou disponível.");
+        }
+
         lock (_lock)
         {
             _tunnels[connectionName] = tunnel;
@@ -94,22 +100,29 @@ public sealed class ConnectionService : IConnectionService
     {
         lock (_lock)
         {
-            return _tunnels.ContainsKey(connectionName) && _tunnels[connectionName].Status == ConnectionStatus.Connected;
+            return _tunnels.TryGetValue(connectionName, out var tunnel)
+                && tunnel.Status == ConnectionStatus.Connected
+                && (tunnel.Process is null || !tunnel.Process.HasExited);
         }
     }
 
     private void CleanupTunnel(string connectionName)
     {
+        var removed = false;
         lock (_lock)
         {
             if (_tunnels.TryGetValue(connectionName, out var tunnel))
             {
                 tunnel.Status = ConnectionStatus.Disconnected;
                 _tunnels.Remove(connectionName);
+                removed = true;
             }
         }
 
-        ActiveTunnelsChanged?.Invoke(this, new ActiveTunnelsChangedEventArgs(connectionName, false));
-        _logger.LogInformation($"Túnel '{connectionName}' encerrou naturalmente.");
+        if (removed)
+        {
+            ActiveTunnelsChanged?.Invoke(this, new ActiveTunnelsChangedEventArgs(connectionName, false));
+            _logger.LogInformation($"Túnel '{connectionName}' encerrou naturalmente.");
+        }
     }
 }
