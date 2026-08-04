@@ -120,9 +120,6 @@
 
     <Style x:Key="SidebarLabel" TargetType="TextBlock">
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Height" Value="32" />
-        <Setter Property="LineHeight" Value="32" />
-        <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
         <Setter Property="Margin" Value="8,0,0,0" />
         <Setter Property="Foreground" Value="{DynamicResource NavigationForegroundBrush}" />
         <Setter Property="FontWeight" Value="SemiBold" />
