@@ -102,7 +102,7 @@ public static class HoopOutputParser
         {
             Name = dto.Name ?? string.Empty,
             FriendlyName = dto.FriendlyName,
-            Environment = ParseEnvironment(dto.Environment),
+            Environment = ParseEnvironment(dto.Environment, dto.Name),
             Type = dto.Type ?? string.Empty
         };
     }
@@ -116,13 +116,7 @@ public static class HoopOutputParser
         }
 
         var name = parts[0].Trim();
-        var environment = parts[1].Trim().ToUpperInvariant() switch
-        {
-            "DEV" => EnvironmentType.Development,
-            "STG" => EnvironmentType.Staging,
-            "PRD" => EnvironmentType.Production,
-            _ => EnvironmentType.Unknown
-        };
+        var environment = ParseEnvironment(parts[1], name);
 
         return new Connection
         {
@@ -195,15 +189,38 @@ public static class HoopOutputParser
         }
     }
 
-    private static EnvironmentType ParseEnvironment(string? environment)
+    private static EnvironmentType ParseEnvironment(string? environment, string? connectionName = null)
     {
-        return (environment ?? string.Empty).ToUpperInvariant() switch
+        var parsed = (environment ?? string.Empty).ToUpperInvariant() switch
         {
             "DEV" or "DEVELOPMENT" => EnvironmentType.Development,
-            "STG" or "STAGING" => EnvironmentType.Staging,
+            "STG" or "STAGING" or "HML" or "HOMOLOG" or "HOMOLOGATION" or "QA" => EnvironmentType.Staging,
             "PRD" or "PRODUCTION" => EnvironmentType.Production,
             _ => EnvironmentType.Unknown
         };
+
+        if (parsed != EnvironmentType.Unknown || string.IsNullOrWhiteSpace(connectionName))
+        {
+            return parsed;
+        }
+
+        var normalizedName = connectionName.ToUpperInvariant();
+        if (Regex.IsMatch(normalizedName, @"(^|[^A-Z0-9])(DEV|DEVELOPMENT)([^A-Z0-9]|$)"))
+        {
+            return EnvironmentType.Development;
+        }
+
+        if (Regex.IsMatch(normalizedName, @"(^|[^A-Z0-9])(STG|STAGING|HML|HOMOLOG|HOMOLOGATION|QA)([^A-Z0-9]|$)"))
+        {
+            return EnvironmentType.Staging;
+        }
+
+        if (Regex.IsMatch(normalizedName, @"(^|[^A-Z0-9])(PRD|PROD|PRODUCTION)([^A-Z0-9]|$)"))
+        {
+            return EnvironmentType.Production;
+        }
+
+        return EnvironmentType.Unknown;
     }
 
     private static string? ExtractValue(string input, string pattern)

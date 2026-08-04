@@ -19,6 +19,16 @@ public sealed class HoopParserTests
     }
 
     [TestMethod]
+    public void InfersEnvironmentFromConnectionNameWhenColumnIsAbsent()
+    {
+        var result = HoopOutputParser.ParseConnections("orders-dev postgres online\npayments-prd postgres online\nshared-db postgres online");
+
+        Assert.AreEqual("DEV", result[0].EnvironmentGroup);
+        Assert.AreEqual("PRD", result[1].EnvironmentGroup);
+        Assert.AreEqual("OUTROS", result[2].EnvironmentGroup);
+    }
+
+    [TestMethod]
     public void ParsesTemporaryCredentials()
     {
         var result = HoopOutputParser.TryParseCredentials("Host: 127.0.0.1\nPort: 5432\nUsername: hoop\nPassword: temporary");

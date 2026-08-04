@@ -18,6 +18,7 @@ public sealed partial class WizardViewModel : ObservableObject
     private readonly INavigationService _navigationService;
     private readonly INotificationService _notificationService;
     private readonly IFirstRunService _firstRunService;
+    private readonly ISettingsService _settingsService;
     private readonly ILoggerService _logger;
 
     [ObservableProperty]
@@ -54,6 +55,7 @@ public sealed partial class WizardViewModel : ObservableObject
         INavigationService navigationService,
         INotificationService notificationService,
         IFirstRunService firstRunService,
+        ISettingsService settingsService,
         ILoggerService logger)
     {
         _hoopService = hoopService;
@@ -63,6 +65,7 @@ public sealed partial class WizardViewModel : ObservableObject
         _navigationService = navigationService;
         _notificationService = notificationService;
         _firstRunService = firstRunService;
+        _settingsService = settingsService;
         _logger = logger;
 
         _installerService.ProgressChanged += (_, e) =>
@@ -191,8 +194,31 @@ public sealed partial class WizardViewModel : ObservableObject
         }
         else
         {
-            _notificationService.Show("DBeaver não encontrado. Selecione o caminho manualmente na próxima etapa.", NotificationLevel.Warning);
+            _notificationService.Show("DBeaver não encontrado. Use o botão Selecionar DBeaver para informar o caminho.", NotificationLevel.Warning);
         }
+    }
+
+    [RelayCommand]
+    private async Task BrowseDBeaverAsync()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Selecione o executável do DBeaver",
+            Filter = "DBeaver (dbeaver.exe)|dbeaver.exe|Executáveis (*.exe)|*.exe",
+            CheckFileExists = true
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        DbeaverPath = dialog.FileName;
+        var settings = _settingsService.Load();
+        settings.DBeaverExecutablePath = DbeaverPath;
+        await _settingsService.SaveAsync(settings);
+        _notificationService.Show("DBeaver localizado com sucesso.");
+        CurrentStep = 5;
     }
 
     [RelayCommand]

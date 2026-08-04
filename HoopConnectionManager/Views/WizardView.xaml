@@ -136,6 +136,10 @@
                             Command="{Binding CheckDBeaverCommand}"
                             Style="{StaticResource FluentButton}"
                             Margin="0,0,0,8" />
+                    <Button Content="Selecionar DBeaver..."
+                            Command="{Binding BrowseDBeaverCommand}"
+                            Style="{StaticResource FluentButton}"
+                            Margin="0,0,0,8" />
                     <TextBlock Text="{Binding DbeaverPath}"
                                Foreground="{DynamicResource SuccessBrush}"
                                TextWrapping="Wrap" />

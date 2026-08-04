@@ -19,6 +19,6 @@ public sealed class Connection
         EnvironmentType.Development => "DEV",
         EnvironmentType.Staging => "STG",
         EnvironmentType.Production => "PRD",
-        _ => "UNKNOWN"
+        _ => "OUTROS"
     };
 }

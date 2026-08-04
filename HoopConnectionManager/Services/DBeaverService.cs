@@ -17,7 +17,13 @@ public sealed class DBeaverService : IDBeaverService
         var settings = _settingsService.Load();
         var candidates = new List<string>();
         if (!string.IsNullOrWhiteSpace(settings.DBeaverExecutablePath)) candidates.Add(settings.DBeaverExecutablePath);
-        candidates.AddRange(new[] { Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "DBeaver", "dbeaver.exe"), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "DBeaver", "dbeaver.exe"), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DBeaver", "dbeaver.exe") });
+        candidates.AddRange(new[]
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "DBeaver", "dbeaver.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "DBeaver", "dbeaver.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DBeaver", "dbeaver.exe"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "DBeaver", "dbeaver.exe")
+        });
         var registry = FindFromRegistry(); if (registry is not null) candidates.Insert(0, registry);
         var found = candidates.FirstOrDefault(File.Exists); if (found is null) return null;
         settings.DBeaverExecutablePath = found; await _settingsService.SaveAsync(settings, cancellationToken); return found;
