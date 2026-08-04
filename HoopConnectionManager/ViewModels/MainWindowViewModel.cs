@@ -43,6 +43,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void NavigateToLogs()
+    {
+        _navigationService.NavigateTo<LogsViewModel>();
+    }
+
+    [RelayCommand]
     private void GoBack()
     {
         _navigationService.GoBack();

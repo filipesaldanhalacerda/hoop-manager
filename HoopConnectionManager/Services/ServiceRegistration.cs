@@ -30,6 +30,7 @@ public static class ServiceRegistration
         services.AddSingleton<DashboardViewModel>();
         services.AddSingleton<WizardViewModel>();
         services.AddSingleton<SettingsViewModel>();
+        services.AddSingleton<LogsViewModel>();
 
         return services;
     }

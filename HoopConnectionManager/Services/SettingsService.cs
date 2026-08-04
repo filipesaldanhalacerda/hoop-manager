@@ -14,6 +14,9 @@ public sealed class SettingsService : ISettingsService
     private readonly string _settingsDirectory;
     private readonly string _settingsPath;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly SemaphoreSlim _saveLock = new(1, 1);
+
+    public event EventHandler<ApplicationSettings>? SettingsSaved;
 
     public SettingsService(string? baseDirectory = null)
     {
@@ -49,15 +52,27 @@ public sealed class SettingsService : ISettingsService
             return settings;
         }
         catch (JsonException) { return new ApplicationSettings(); }
+        catch (IOException) { return new ApplicationSettings(); }
+        catch (UnauthorizedAccessException) { return new ApplicationSettings(); }
     }
 
     public async Task SaveAsync(ApplicationSettings settings, CancellationToken cancellationToken = default)
     {
-        Directory.CreateDirectory(_settingsDirectory);
+        await _saveLock.WaitAsync(cancellationToken);
+        try
+        {
+            Directory.CreateDirectory(_settingsDirectory);
 
-        var json = JsonSerializer.Serialize(settings, _jsonOptions);
-        var temporaryPath = _settingsPath + ".tmp";
-        await File.WriteAllTextAsync(temporaryPath, json, cancellationToken);
-        File.Move(temporaryPath, _settingsPath, true);
+            var json = JsonSerializer.Serialize(settings, _jsonOptions);
+            var temporaryPath = _settingsPath + ".tmp";
+            await File.WriteAllTextAsync(temporaryPath, json, cancellationToken);
+            File.Move(temporaryPath, _settingsPath, true);
+        }
+        finally
+        {
+            _saveLock.Release();
+        }
+
+        SettingsSaved?.Invoke(this, settings);
     }
 }

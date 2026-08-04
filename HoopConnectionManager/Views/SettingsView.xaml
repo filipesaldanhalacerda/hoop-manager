@@ -60,7 +60,7 @@
                                       Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
                             <CheckBox Content="Abrir o DBeaver automaticamente após conectar" IsChecked="{Binding OpenDBeaverAutomatically}"
                                       Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
-                            <CheckBox Content="Atualizar a lista de conexões ao iniciar" IsChecked="{Binding RefreshConnectionsOnStartup}"
+                            <CheckBox Content="Sincronizar o catálogo automaticamente a cada 5 minutos" IsChecked="{Binding RefreshConnectionsOnStartup}"
                                       Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
                         </StackPanel>
                     </Border>
@@ -74,8 +74,9 @@
                             <TextBlock Text="Use o tema do Windows ou escolha uma preferência fixa."
                                        Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,14" />
                             <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}"
-                                      Background="{DynamicResource SurfaceSecondaryBrush}" Foreground="{DynamicResource ForegroundBrush}"
-                                      BorderBrush="{DynamicResource BorderBrush}" Padding="10,8" />
+                                      Style="{StaticResource FluentComboBox}" />
+                            <TextBlock Text="A alteração é aplicada e salva imediatamente."
+                                       Foreground="{DynamicResource SuccessBrush}" FontSize="10" Margin="0,9,0,0" />
                         </StackPanel>
                     </Border>
 
@@ -96,7 +97,7 @@
 
         <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,18,0,0" Margin="0,20,0,0">
             <Grid>
-                <TextBlock Text="As alterações entram em vigor após salvar."
+                <TextBlock Text="{Binding SaveStatus}"
                            Foreground="{DynamicResource ForegroundSecondaryBrush}" VerticalAlignment="Center" />
                 <Button Content="Salvar configurações" Command="{Binding SaveCommand}" Style="{StaticResource FluentButton}" HorizontalAlignment="Right" />
             </Grid>

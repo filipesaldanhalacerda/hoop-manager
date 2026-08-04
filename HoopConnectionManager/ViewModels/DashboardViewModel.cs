@@ -22,10 +22,22 @@ public sealed partial class DashboardViewModel : ObservableObject
     private readonly INotificationService _notificationService;
     private readonly ILoggerService _logger;
     private readonly DispatcherTimer _statusRefreshTimer;
+    private readonly DispatcherTimer _connectionsRefreshTimer;
+    private readonly Dictionary<string, (ConnectionStatus Status, string? Detail)> _connectionStates =
+        new(StringComparer.OrdinalIgnoreCase);
     private bool _statusRefreshInProgress;
+    private bool _connectionsRefreshInProgress;
 
     [ObservableProperty]
     private string _searchText = string.Empty;
+
+    [ObservableProperty]
+    private string _searchResultSummary = "Carregando catálogo...";
+
+    [ObservableProperty]
+    private string _catalogSyncStatus = "Preparando sincronização...";
+
+    public bool HasSearchText => !string.IsNullOrWhiteSpace(SearchText);
 
     [ObservableProperty]
     private string _userStatusMessage = "Buscando...";
@@ -66,12 +78,15 @@ public sealed partial class DashboardViewModel : ObservableObject
         _settingsService = settingsService;
         _notificationService = notificationService;
         _logger = logger;
+        _settingsService.SettingsSaved += (_, settings) =>
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                ConfigureConnectionsRefresh(settings.RefreshConnectionsOnStartup));
 
         _connectionService.ActiveTunnelsChanged += (_, e) =>
         {
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                UpdateConnectionStatus(e.ConnectionName, e.IsConnected);
+                UpdateConnectionStatus(e.ConnectionName, e.Status, e.Detail);
                 SynchronizeActiveConnections();
             });
         };
@@ -80,14 +95,6 @@ public sealed partial class DashboardViewModel : ObservableObject
         FilteredConnections.GroupDescriptions.Add(new PropertyGroupDescription(nameof(ConnectionViewModel.EnvironmentGroup)));
         FilteredConnections.SortDescriptions.Add(new SortDescription(nameof(ConnectionViewModel.EnvironmentGroup), ListSortDirection.Ascending));
         FilteredConnections.SortDescriptions.Add(new SortDescription(nameof(ConnectionViewModel.DisplayName), ListSortDirection.Ascending));
-
-        PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(SearchText))
-            {
-                FilteredConnections.Refresh();
-            }
-        };
 
         FilteredConnections.Filter = FilterConnection;
 
@@ -98,14 +105,43 @@ public sealed partial class DashboardViewModel : ObservableObject
         _statusRefreshTimer.Tick += async (_, _) => await RefreshStatusAutomaticallyAsync();
         _statusRefreshTimer.Start();
 
-        _ = LoadConnectionsAsync();
+        _connectionsRefreshTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMinutes(5)
+        };
+        _connectionsRefreshTimer.Tick += async (_, _) => await LoadConnectionsAsync(showProgress: false);
+        ConfigureConnectionsRefresh(_settingsService.Load().RefreshConnectionsOnStartup);
+
+        _ = LoadConnectionsAsync(showProgress: true);
     }
 
-    [RelayCommand]
-    private async Task LoadConnectionsAsync()
+    private void ConfigureConnectionsRefresh(bool enabled)
     {
-        IsBusy = true;
-        UserStatusMessage = "Buscando...";
+        if (enabled)
+        {
+            _connectionsRefreshTimer.Start();
+            CatalogSyncStatus = "Sincronização automática ativa • a cada 5 min";
+        }
+        else
+        {
+            _connectionsRefreshTimer.Stop();
+            CatalogSyncStatus = "Sincronização automática desativada";
+        }
+    }
+
+    private async Task LoadConnectionsAsync(bool showProgress)
+    {
+        if (_connectionsRefreshInProgress || (!showProgress && IsBusy))
+        {
+            return;
+        }
+
+        _connectionsRefreshInProgress = true;
+        if (showProgress)
+        {
+            IsBusy = true;
+            UserStatusMessage = "Buscando...";
+        }
 
         try
         {
@@ -128,24 +164,51 @@ public sealed partial class DashboardViewModel : ObservableObject
                     viewModel.ConnectedAt = tunnel.StartedAt;
                     viewModel.Status = ConnectionStatus.Connected;
                 }
+                else if (_connectionStates.TryGetValue(connection.Name, out var state))
+                {
+                    viewModel.Status = state.Status;
+                    viewModel.StatusDetail = state.Detail;
+                }
                 Connections.Add(viewModel);
             }
 
             RefreshFavoritesAndRecents();
             SynchronizeActiveConnections();
             FilteredConnections.Refresh();
+            UpdateSearchResultSummary();
+            CatalogSyncStatus = _connectionsRefreshTimer.IsEnabled
+                ? $"Atualizado às {DateTime.Now:HH:mm} • automático a cada 5 min"
+                : $"Atualizado às {DateTime.Now:HH:mm} • sincronização automática desativada";
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Falha ao carregar conexões.");
-            UserStatusMessage = "Deslogado";
-            _notificationService.Show($"Erro ao carregar conexões: {ex.Message}", NotificationLevel.Error);
+            CatalogSyncStatus = "Falha na última sincronização • nova tentativa automática";
+            if (showProgress)
+            {
+                UserStatusMessage = "Deslogado";
+                _notificationService.Show($"Erro ao carregar conexões: {ex.Message}", NotificationLevel.Error);
+            }
         }
         finally
         {
-            IsBusy = false;
+            _connectionsRefreshInProgress = false;
+            if (showProgress)
+            {
+                IsBusy = false;
+            }
         }
     }
+
+    partial void OnSearchTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasSearchText));
+        FilteredConnections.Refresh();
+        UpdateSearchResultSummary();
+    }
+
+    [RelayCommand]
+    private void ClearSearch() => SearchText = string.Empty;
 
     [RelayCommand]
     private async Task ConnectAsync(ConnectionViewModel? connection)
@@ -319,7 +382,18 @@ public sealed partial class DashboardViewModel : ObservableObject
         var query = SearchText.Trim();
         return connection.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
             || connection.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
-            || connection.EnvironmentGroup.Contains(query, StringComparison.OrdinalIgnoreCase);
+            || connection.EnvironmentGroup.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || connection.Type.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || connection.ConnectionStateLabel.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || connection.LocalEndpoint.Contains(query, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void UpdateSearchResultSummary()
+    {
+        var visibleCount = FilteredConnections.Cast<object>().Count();
+        SearchResultSummary = HasSearchText
+            ? $"{visibleCount} de {Connections.Count} conexões encontradas"
+            : $"{Connections.Count} conexões disponíveis";
     }
 
     private async Task PersistRecentConnectionAsync(ConnectionViewModel connection)
@@ -336,13 +410,15 @@ public sealed partial class DashboardViewModel : ObservableObject
         await _settingsService.SaveAsync(settings);
     }
 
-    private void UpdateConnectionStatus(string connectionName, bool isConnected)
+    private void UpdateConnectionStatus(string connectionName, ConnectionStatus status, string? detail)
     {
+        _connectionStates[connectionName] = (status, detail);
         var connection = Connections.FirstOrDefault(c => c.Name == connectionName);
         if (connection is not null)
         {
-            connection.Status = isConnected ? ConnectionStatus.Connected : ConnectionStatus.Disconnected;
-            if (!isConnected)
+            connection.Status = status;
+            connection.StatusDetail = detail;
+            if (status != ConnectionStatus.Connected)
             {
                 connection.ClearCredentials();
                 connection.ConnectedAt = null;
@@ -370,6 +446,8 @@ public sealed partial class DashboardViewModel : ObservableObject
         OperationalStatus = ConnectedCount == 0
             ? "Nenhum túnel ativo"
             : ConnectedCount == 1 ? "1 túnel ativo" : $"{ConnectedCount} túneis ativos";
+        FilteredConnections.Refresh();
+        UpdateSearchResultSummary();
     }
 
     private void RefreshFavoritesAndRecents()

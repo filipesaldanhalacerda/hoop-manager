@@ -26,7 +26,8 @@ public sealed class StartupService : IStartupService
     {
         using var key = Registry.CurrentUser.OpenSubKey(RunRegistryKey);
         var value = key?.GetValue(_applicationName) as string;
-        return !string.IsNullOrWhiteSpace(value) && value == _executablePath;
+        return !string.IsNullOrWhiteSpace(value)
+            && string.Equals(value.Trim('"'), _executablePath, StringComparison.OrdinalIgnoreCase);
     }
 
     public void EnableStartup()
@@ -34,7 +35,7 @@ public sealed class StartupService : IStartupService
         using var key = Registry.CurrentUser.OpenSubKey(RunRegistryKey, true)
             ?? Registry.CurrentUser.CreateSubKey(RunRegistryKey);
 
-        key.SetValue(_applicationName, _executablePath);
+        key.SetValue(_applicationName, $"\"{_executablePath}\"");
     }
 
     public void DisableStartup()

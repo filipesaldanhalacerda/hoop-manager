@@ -18,11 +18,14 @@ public interface IConnectionService
 public sealed class ActiveTunnelsChangedEventArgs : EventArgs
 {
     public string ConnectionName { get; }
-    public bool IsConnected { get; }
+    public ConnectionStatus Status { get; }
+    public string? Detail { get; }
+    public bool IsConnected => Status == ConnectionStatus.Connected;
 
-    public ActiveTunnelsChangedEventArgs(string connectionName, bool isConnected)
+    public ActiveTunnelsChangedEventArgs(string connectionName, ConnectionStatus status, string? detail = null)
     {
         ConnectionName = connectionName;
-        IsConnected = isConnected;
+        Status = status;
+        Detail = detail;
     }
 }

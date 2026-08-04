@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using HoopConnectionManager.Models;
 using HoopConnectionManager.Services.Abstractions;
 using Microsoft.Win32;
@@ -9,6 +10,7 @@ namespace HoopConnectionManager.Services;
 public sealed class DBeaverService : IDBeaverService
 {
     private const string DBeaverStorePackagePrefix = "DBeaverCorp.DBeaverCE_";
+    private const int RestoreWindow = 9;
     private readonly ISettingsService _settingsService;
     private readonly ILoggerService _logger;
     public DBeaverService(ISettingsService settingsService, ILoggerService logger) { _settingsService = settingsService; _logger = logger; }
@@ -34,6 +36,13 @@ public sealed class DBeaverService : IDBeaverService
     public async Task OpenConnectionAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(info);
+
+        if (TryActivateRunningInstance())
+        {
+            _logger.LogInformation($"Instância existente do DBeaver reutilizada para '{info.ConnectionName}'.");
+            return;
+        }
+
         var path = await LocateAsync(cancellationToken) ?? throw new InvalidOperationException("DBeaver não encontrado. Configure o caminho manualmente.");
         Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
         _logger.LogInformation($"DBeaver aberto para '{info.ConnectionName}'. Nenhuma configuração interna foi alterada.");
@@ -87,4 +96,47 @@ public sealed class DBeaverService : IDBeaverService
 
         return null;
     }
+
+    private static bool TryActivateRunningInstance()
+    {
+        var processes = Process.GetProcessesByName("dbeaver");
+        if (processes.Length == 0)
+        {
+            return false;
+        }
+
+        foreach (var process in processes)
+        {
+            using (process)
+            {
+                try
+                {
+                    var windowHandle = process.MainWindowHandle;
+                    if (windowHandle != IntPtr.Zero)
+                    {
+                        ShowWindow(windowHandle, RestoreWindow);
+                        SetForegroundWindow(windowHandle);
+                        break;
+                    }
+                }
+                catch (InvalidOperationException)
+                {
+                    // O processo encerrou durante a consulta; outro processo ainda
+                    // pode representar a instância principal do DBeaver.
+                }
+            }
+        }
+
+        // Mesmo que o Windows bloqueie a ativação da janela, não iniciamos outra
+        // sessão enquanto houver um processo DBeaver em execução.
+        return true;
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ShowWindow(IntPtr windowHandle, int command);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(IntPtr windowHandle);
 }

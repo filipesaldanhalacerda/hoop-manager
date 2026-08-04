@@ -114,5 +114,30 @@ public sealed class ConnectionServiceTests
         public Task<bool> IsInstalledAsync(CancellationToken token = default) => Task.FromResult(true);
     }
     private sealed class FakeLogger : ILoggerService
-    { public void LogError(string m) { } public void LogError(Exception e, string m) { } public void LogInformation(string m) { } public void LogWarning(string m) { } }
+    {
+        public event EventHandler<LogEntry>? LogWritten { add { } remove { } }
+        public string LogsDirectory => string.Empty;
+        public IReadOnlyList<LogEntry> GetRecentEntries(int maximumCount = 500) => [];
+        public void LogError(string m) { }
+        public void LogError(Exception e, string m) { }
+        public void LogInformation(string m) { }
+        public void LogWarning(string m) { }
+    }
+
+    [TestMethod]
+    public async Task NotifiesConsumersAfterSettingsArePersisted()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "hoop-manager-tests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var service = new SettingsService(directory);
+            var notified = false;
+            service.SettingsSaved += (_, settings) => notified = settings.RefreshConnectionsOnStartup;
+
+            await service.SaveAsync(new() { RefreshConnectionsOnStartup = true });
+
+            Assert.IsTrue(notified);
+        }
+        finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+    }
 }

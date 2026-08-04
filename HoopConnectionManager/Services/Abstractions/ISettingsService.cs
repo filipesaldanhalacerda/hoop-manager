@@ -8,6 +8,7 @@ namespace HoopConnectionManager.Services.Abstractions;
 /// </summary>
 public interface ISettingsService
 {
+    event EventHandler<ApplicationSettings>? SettingsSaved;
     ApplicationSettings Load();
     Task SaveAsync(ApplicationSettings settings, CancellationToken cancellationToken = default);
     string GetSettingsPath();

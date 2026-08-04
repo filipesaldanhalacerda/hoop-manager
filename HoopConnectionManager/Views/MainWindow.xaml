@@ -42,11 +42,15 @@
                     <TextBlock Text="OPERAÇÃO" Foreground="{DynamicResource ForegroundSecondaryBrush}"
                                FontSize="10" FontWeight="SemiBold" Margin="14,0,0,8" />
                     <Button Command="{Binding NavigateToDashboardCommand}" Style="{StaticResource NavigationButton}">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="⌁" FontSize="19" Width="30" />
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE774;" FontFamily="Segoe Fluent Icons" FontSize="16" Width="30" />
                             <TextBlock Text="Conexões" VerticalAlignment="Center" /></StackPanel>
                     </Button>
+                    <Button Command="{Binding NavigateToLogsCommand}" Style="{StaticResource NavigationButton}">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE9D9;" FontFamily="Segoe Fluent Icons" FontSize="16" Width="30" />
+                            <TextBlock Text="Atividades" VerticalAlignment="Center" /></StackPanel>
+                    </Button>
                     <Button Command="{Binding NavigateToSettingsCommand}" Style="{StaticResource NavigationButton}">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="⚙" FontSize="16" Width="30" />
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="16" Width="30" />
                             <TextBlock Text="Configurações" VerticalAlignment="Center" /></StackPanel>
                     </Button>
                 </StackPanel>

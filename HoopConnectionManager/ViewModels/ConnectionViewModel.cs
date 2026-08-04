@@ -18,13 +18,15 @@ public sealed partial class ConnectionViewModel : ObservableObject
     [ObservableProperty] private string? _username;
     [ObservableProperty] private string? _password;
     [ObservableProperty] private DateTime? _connectedAt;
+    [ObservableProperty] private string? _statusDetail;
 
     public bool CanConnect => Status is ConnectionStatus.Disconnected or ConnectionStatus.Error;
-    public bool CanDisconnect => Status == ConnectionStatus.Connected;
+    public bool CanDisconnect => Status is ConnectionStatus.Connected or ConnectionStatus.Reconnecting;
     public string LocalEndpoint => Host is not null && Port is not null ? $"{Host}:{Port}" : "Aguardando túnel";
     public string ConnectionStateLabel => Status switch
     {
         ConnectionStatus.Connecting => "Conectando",
+        ConnectionStatus.Reconnecting => "Reconectando",
         ConnectionStatus.Connected => "Conectado",
         ConnectionStatus.Error => "Erro",
         _ => "Desconectado"

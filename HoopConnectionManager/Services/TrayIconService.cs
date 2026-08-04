@@ -75,7 +75,24 @@ public sealed class TrayIconService : ITrayIconService, IDisposable
 
     private async void OnDisconnectClick(object? sender, EventArgs e)
     {
-        await _connectionService.DisconnectAllAsync();
+        var activeCount = _connectionService.ActiveTunnels.Count;
+        if (activeCount == 0)
+        {
+            ShowBalloonTip("Hoop Connection Manager", "Não há conexões ativas para desconectar.");
+            return;
+        }
+
+        var confirmation = System.Windows.Forms.MessageBox.Show(
+            $"Deseja encerrar {activeCount} {(activeCount == 1 ? "conexão ativa" : "conexões ativas")}?",
+            "Desconectar todas",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning,
+            MessageBoxDefaultButton.Button2);
+
+        if (confirmation == DialogResult.Yes)
+        {
+            await _connectionService.DisconnectAllAsync();
+        }
     }
 
     public void Dispose()
