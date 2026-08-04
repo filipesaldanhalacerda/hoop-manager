@@ -50,9 +50,13 @@
                         <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7B8;" FontFamily="Segoe Fluent Icons" FontSize="17" Width="32" />
                             <TextBlock Text="Resources" VerticalAlignment="Center" /></StackPanel>
                     </Button>
-                    <Button Command="{Binding NavigateToLogsCommand}" Style="{StaticResource SidebarButton}">
+                    <Button Command="{Binding NavigateToSessionHistoryCommand}" Style="{StaticResource SidebarButton}">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE9D9;" FontFamily="Segoe Fluent Icons" FontSize="17" Width="32" />
                             <TextBlock Text="Sessions" VerticalAlignment="Center" /></StackPanel>
+                    </Button>
+                    <Button Command="{Binding NavigateToLogsCommand}" Style="{StaticResource SidebarButton}">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE9F9;" FontFamily="Segoe Fluent Icons" FontSize="17" Width="32" />
+                            <TextBlock Text="Logs" VerticalAlignment="Center" /></StackPanel>
                     </Button>
                     <Button Command="{Binding NavigateToSettingsCommand}" Style="{StaticResource SidebarButton}">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="17" Width="32" />
@@ -78,6 +82,30 @@
             <Border Grid.Row="0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Background="{DynamicResource SurfaceBrush}">
                 <Grid Margin="32,0">
                     <TextBlock Text="Dev Access Center  /  Ferramenta interna de conexões" Foreground="{DynamicResource ForegroundSecondaryBrush}" VerticalAlignment="Center" FontSize="12" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Border Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1" CornerRadius="13" Padding="10,6" Margin="0,0,10,0"
+                                ToolTip="{Binding ConnectivityDetail}">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" Margin="0,0,7,0" VerticalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{DynamicResource ForegroundSecondaryBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ConnectivityKind}" Value="Online"><Setter Property="Fill" Value="{DynamicResource SuccessBrush}" /></DataTrigger>
+                                                <DataTrigger Binding="{Binding ConnectivityKind}" Value="Recovering"><Setter Property="Fill" Value="{DynamicResource WarningBrush}" /></DataTrigger>
+                                                <DataTrigger Binding="{Binding ConnectivityKind}" Value="NoNetwork"><Setter Property="Fill" Value="{DynamicResource ErrorBrush}" /></DataTrigger>
+                                                <DataTrigger Binding="{Binding ConnectivityKind}" Value="AuthenticationExpired"><Setter Property="Fill" Value="{DynamicResource WarningBrush}" /></DataTrigger>
+                                                <DataTrigger Binding="{Binding ConnectivityKind}" Value="GatewayUnavailable"><Setter Property="Fill" Value="{DynamicResource ErrorBrush}" /></DataTrigger>
+                                                <DataTrigger Binding="{Binding ConnectivityKind}" Value="HoopDisconnected"><Setter Property="Fill" Value="{DynamicResource ErrorBrush}" /></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                <TextBlock Text="{Binding ConnectivityLabel}" Foreground="{DynamicResource ForegroundBrush}"
+                                           FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
                     <Button Command="{Binding ShowSecurityDetailsCommand}" HorizontalAlignment="Right" VerticalAlignment="Center"
                             Style="{StaticResource NavigationButton}" Padding="10,7" ToolTip="Entenda como seus dados são protegidos">
                         <StackPanel Orientation="Horizontal">
@@ -89,12 +117,13 @@
                                        FontSize="9" Margin="8,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
+                    </StackPanel>
                 </Grid>
             </Border>
             <ContentControl Grid.Row="1" Content="{Binding CurrentViewModel}" Margin="36,30,36,32" />
         </Grid>
 
-        <Border Grid.Column="1" Panel.ZIndex="20" Width="430" MinHeight="64" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+        <Border Grid.Column="1" Panel.ZIndex="20" Width="520" MinHeight="64" HorizontalAlignment="Right" VerticalAlignment="Bottom"
                 Margin="0,0,24,24" Padding="14,11" Background="{DynamicResource ElevatedBrush}" BorderThickness="4,1,1,1"
                 CornerRadius="8" Visibility="{Binding IsNotificationVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Border.Style>
@@ -107,7 +136,7 @@
                 </Style>
             </Border.Style>
             <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="30" /><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="30" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
                 <TextBlock Text="{Binding NotificationGlyph}" FontFamily="Segoe Fluent Icons" FontSize="17" VerticalAlignment="Top" Margin="1,2,0,0">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
@@ -121,7 +150,10 @@
                 </TextBlock>
                 <TextBlock Grid.Column="1" Text="{Binding NotificationMessage}" Foreground="{DynamicResource ForegroundBrush}"
                            TextWrapping="Wrap" LineHeight="19" VerticalAlignment="Center" />
-                <Button Grid.Column="2" Command="{Binding DismissNotificationCommand}" Style="{StaticResource NavigationButton}"
+                <Button Grid.Column="2" Content="{Binding NotificationActionLabel}" Command="{Binding ExecuteNotificationActionCommand}"
+                        Style="{StaticResource SecondaryButton}" Padding="10,6" Margin="10,0,4,0"
+                        Visibility="{Binding HasNotificationAction, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <Button Grid.Column="3" Command="{Binding DismissNotificationCommand}" Style="{StaticResource NavigationButton}"
                         Padding="0" Margin="2" ToolTip="Fechar aviso">
                     <TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons" FontSize="11" HorizontalAlignment="Center" />
                 </Button>

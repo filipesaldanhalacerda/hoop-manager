@@ -20,6 +20,7 @@ public static class ServiceRegistration
         services.AddSingleton<IInstallerService, InstallerService>();
         services.AddSingleton<ILoginService, LoginService>();
         services.AddSingleton<IConnectionService, ConnectionService>();
+        services.AddSingleton<ISessionHistoryService, SessionHistoryService>();
         services.AddSingleton<IDBeaverService, DBeaverService>();
         services.AddSingleton<IFirstRunService, FirstRunService>();
         services.AddSingleton<IStartupService, StartupService>();
@@ -31,6 +32,7 @@ public static class ServiceRegistration
         services.AddSingleton<WizardViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<LogsViewModel>();
+        services.AddSingleton<SessionHistoryViewModel>();
 
         return services;
     }

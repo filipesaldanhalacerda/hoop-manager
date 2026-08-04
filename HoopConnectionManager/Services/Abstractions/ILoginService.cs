@@ -5,5 +5,6 @@ namespace HoopConnectionManager.Services.Abstractions;
 /// </summary>
 public interface ILoginService
 {
+    event EventHandler? AuthenticationSucceeded;
     Task<bool> LoginAsync(CancellationToken cancellationToken = default);
 }

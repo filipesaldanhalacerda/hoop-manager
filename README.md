@@ -19,4 +19,14 @@ dotnet build
 dotnet test
 ```
 
+## Instalador corporativo
+
+O MSI x64 autocontido pode ser gerado com:
+
+```powershell
+dotnet build installer\DevAccessCenter.Installer.wixproj -c Release -p:ProductVersion=1.0.0
+```
+
+Atualizações usam o mesmo `UpgradeCode` e preservam configurações, logs e histórico em `%LocalAppData%`. Consulte [installer/README.md](installer/README.md) para instalação silenciosa e publicação pela central corporativa.
+
 O funcionamento real depende da versão corporativa do Hoop CLI, do login via navegador e das permissões de execução da máquina.

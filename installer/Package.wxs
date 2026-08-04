@@ -1,0 +1,24 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Dev Access Center" Manufacturer="Ambev" Version="$(var.ProductVersion)"
+           UpgradeCode="7D3FEC2B-7D6C-4D7E-93B4-6B8DA0E73359" Scope="perMachine" Compressed="yes">
+    <SummaryInformation Description="Gerenciador corporativo de conexões de desenvolvimento" />
+    <MajorUpgrade DowngradeErrorMessage="Uma versão mais recente do Dev Access Center já está instalada."
+                  Schedule="afterInstallInitialize" />
+    <MediaTemplate EmbedCab="yes" />
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="CompanyFolder" Name="Ambev">
+        <Directory Id="INSTALLFOLDER" Name="Dev Access Center">
+          <Component Id="ApplicationComponent" Guid="B290B86F-22F7-4A8A-8A13-38B03D27414A" Bitness="always64">
+            <File Id="ApplicationExecutable" Source="$(var.PublishDirectory)\DevAccessCenter.exe" KeyPath="yes">
+              <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Dev Access Center"
+                        WorkingDirectory="INSTALLFOLDER" Advertise="yes" />
+            </File>
+          </Component>
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+    <Feature Id="MainFeature" Title="Dev Access Center" Level="1">
+      <ComponentRef Id="ApplicationComponent" />
+    </Feature>
+  </Package>
+</Wix>

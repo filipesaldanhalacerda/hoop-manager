@@ -27,6 +27,8 @@ public sealed partial class DashboardViewModel : ObservableObject
         new(StringComparer.OrdinalIgnoreCase);
     private bool _statusRefreshInProgress;
     private bool _connectionsRefreshInProgress;
+    private bool _automaticCatalogRefreshEnabled;
+    private bool? _lastAuthenticationState;
     private CancellationTokenSource? _clipboardClearCancellation;
 
     [ObservableProperty]
@@ -76,7 +78,8 @@ public sealed partial class DashboardViewModel : ObservableObject
         IDBeaverService dbeaverService,
         ISettingsService settingsService,
         INotificationService notificationService,
-        ILoggerService logger)
+        ILoggerService logger,
+        ILoginService loginService)
     {
         _hoopService = hoopService;
         _connectionService = connectionService;
@@ -84,6 +87,14 @@ public sealed partial class DashboardViewModel : ObservableObject
         _settingsService = settingsService;
         _notificationService = notificationService;
         _logger = logger;
+        loginService.AuthenticationSucceeded += (_, _) =>
+        {
+            System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                CatalogSyncStatus = "Autenticação renovada • atualizando conexões...";
+                _ = LoadConnectionsAsync(showProgress: false);
+            }));
+        };
         _settingsService.SettingsSaved += (_, settings) =>
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
                 ConfigureConnectionsRefresh(settings.RefreshConnectionsOnStartup));
@@ -94,6 +105,10 @@ public sealed partial class DashboardViewModel : ObservableObject
             {
                 UpdateConnectionStatus(e.ConnectionName, e.Status, e.Detail);
                 SynchronizeActiveConnections();
+                if (e.TunnelRecreated)
+                {
+                    _ = UpdateDBeaverAfterReconnectionAsync(e.ConnectionName);
+                }
             });
         };
 
@@ -121,10 +136,45 @@ public sealed partial class DashboardViewModel : ObservableObject
         _ = LoadConnectionsAsync(showProgress: true);
     }
 
+    private async Task UpdateDBeaverAfterReconnectionAsync(string connectionName)
+    {
+        if (!_settingsService.Load().OpenDBeaverAutomatically
+            || !_connectionService.ActiveTunnels.TryGetValue(connectionName, out var tunnel)
+            || tunnel.Credentials is null)
+        {
+            return;
+        }
+
+        var connection = Connections.FirstOrDefault(item =>
+            string.Equals(item.Name, connectionName, StringComparison.OrdinalIgnoreCase));
+        try
+        {
+            await _dbeaverService.UpdateConnectionConfigurationAsync(new DBeaverConnectionInfo
+            {
+                ConnectionId = connection?.Id ?? connectionName,
+                ConnectionName = connectionName,
+                Host = tunnel.Credentials.Host,
+                Port = tunnel.Credentials.Port,
+                Username = tunnel.Credentials.Username,
+                Password = tunnel.Credentials.Password
+            });
+            _logger.LogInformation($"DBeaver sincronizado após a recriação do túnel '{connectionName}'.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"O túnel '{connectionName}' foi recuperado, mas o DBeaver não pôde ser atualizado: {ex.Message}");
+            _notificationService.Show(
+                "Túnel recuperado, mas o DBeaver não recebeu a nova porta/senha. Abra a conexão novamente.",
+                NotificationLevel.Warning);
+        }
+    }
+
     private void ConfigureConnectionsRefresh(bool enabled)
     {
+        _automaticCatalogRefreshEnabled = enabled;
         if (enabled)
         {
+            _connectionsRefreshTimer.Interval = TimeSpan.FromMinutes(5);
             _connectionsRefreshTimer.Start();
             CatalogSyncStatus = "Sincronização automática ativa • a cada 5 min";
         }
@@ -155,6 +205,12 @@ public sealed partial class DashboardViewModel : ObservableObject
             var session = await _hoopService.GetSessionAsync();
             UserEmail = session.Email;
             UserStatusMessage = session.IsAuthenticated ? "Logado" : "Deslogado";
+            _lastAuthenticationState = session.IsAuthenticated;
+
+            if (!session.IsAuthenticated)
+            {
+                throw new InvalidOperationException("A sessão do Hoop não está autenticada. O sistema continuará tentando e atualizará a tela quando o acesso voltar.");
+            }
 
             var connections = await _hoopService.GetConnectionsAsync();
             Connections.Clear();
@@ -191,16 +247,18 @@ public sealed partial class DashboardViewModel : ObservableObject
             CatalogSyncStatus = _connectionsRefreshTimer.IsEnabled
                 ? $"Atualizado às {DateTime.Now:HH:mm} • automático a cada 5 min"
                 : $"Atualizado às {DateTime.Now:HH:mm} • sincronização automática desativada";
+            RestoreNormalCatalogRefresh();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Falha ao carregar conexões.");
             CatalogSyncStatus = "Falha na última sincronização • nova tentativa automática";
             CatalogMessage = $"Não foi possível carregar o catálogo. {ex.Message}";
+            EnableCatalogRecoveryRefresh();
             if (showProgress)
             {
                 UserStatusMessage = "Deslogado";
-                _notificationService.Show($"Erro ao carregar conexões: {ex.Message}", NotificationLevel.Error);
+                ShowGuidedFailure("Falha ao carregar conexões", ex);
             }
         }
         finally
@@ -211,6 +269,32 @@ public sealed partial class DashboardViewModel : ObservableObject
                 IsBusy = false;
             }
         }
+    }
+
+    private void EnableCatalogRecoveryRefresh()
+    {
+        if (!_automaticCatalogRefreshEnabled)
+        {
+            CatalogSyncStatus = "Falha na última sincronização • atualização automática desativada";
+            return;
+        }
+
+        _connectionsRefreshTimer.Stop();
+        _connectionsRefreshTimer.Interval = TimeSpan.FromSeconds(20);
+        _connectionsRefreshTimer.Start();
+        CatalogSyncStatus = "Hoop indisponível • tentando novamente a cada 20 s";
+    }
+
+    private void RestoreNormalCatalogRefresh()
+    {
+        if (!_automaticCatalogRefreshEnabled)
+        {
+            return;
+        }
+
+        _connectionsRefreshTimer.Stop();
+        _connectionsRefreshTimer.Interval = TimeSpan.FromMinutes(5);
+        _connectionsRefreshTimer.Start();
     }
 
     partial void OnCatalogMessageChanged(string? value) => OnPropertyChanged(nameof(HasCatalogMessage));
@@ -248,24 +332,42 @@ public sealed partial class DashboardViewModel : ObservableObject
             await PersistRecentConnectionAsync(connection);
             RefreshFavoritesAndRecents();
 
+            if (tunnel.UsedAlternativePort && tunnel.Credentials is not null)
+            {
+                _notificationService.Show(
+                    $"Porta local 5433 ocupada — escolhendo automaticamente a porta {tunnel.Credentials.Port}.",
+                    NotificationLevel.Information);
+            }
+
             if (tunnel.Credentials is not null && _settingsService.Load().OpenDBeaverAutomatically)
             {
-                await _dbeaverService.OpenConnectionAsync(new DBeaverConnectionInfo
+                try
                 {
-                    ConnectionId = connection.Id,
-                    ConnectionName = connection.Name,
-                    Host = tunnel.Credentials.Host,
-                    Port = tunnel.Credentials.Port,
-                    Username = tunnel.Credentials.Username,
-                    Password = tunnel.Credentials.Password
-                });
+                    await _dbeaverService.OpenConnectionAsync(new DBeaverConnectionInfo
+                    {
+                        ConnectionId = connection.Id,
+                        ConnectionName = connection.Name,
+                        Host = tunnel.Credentials.Host,
+                        Port = tunnel.Credentials.Port,
+                        Username = tunnel.Credentials.Username,
+                        Password = tunnel.Credentials.Password
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Túnel conectado, mas o DBeaver não pôde ser aberto: {ex.Message}");
+                    _notificationService.Show(
+                        "DBeaver não encontrado — selecione o executável nas Configurações. O túnel continua conectado.",
+                        NotificationLevel.Warning,
+                        NotificationAction.SelectDBeaver);
+                }
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Falha ao conectar a '{connection.Name}'.");
             connection.Status = ConnectionStatus.Error;
-            _notificationService.Show($"Erro ao conectar: {ex.Message}", NotificationLevel.Error);
+            ShowGuidedFailure("Falha ao conectar", ex);
         }
         finally
         {
@@ -301,6 +403,33 @@ public sealed partial class DashboardViewModel : ObservableObject
             IsBusy = false;
         }
     }
+
+    private void ShowGuidedFailure(string context, Exception exception)
+    {
+        var message = exception.Message;
+        if (ContainsAny(message, "unauthorized", "unauthenticated", "token", "login", "sessão", "autentica"))
+        {
+            _notificationService.Show(
+                "Sessão expirada — autentique novamente para continuar.",
+                NotificationLevel.Warning,
+                NotificationAction.Reauthenticate);
+            return;
+        }
+
+        if (ContainsAny(message, "gateway", "vpn", "network", "rede", "timeout", "timed out", "unavailable", "connection refused"))
+        {
+            _notificationService.Show(
+                "Gateway inacessível — confira a VPN e a rede corporativa. O sistema tentará novamente automaticamente.",
+                NotificationLevel.Error,
+                NotificationAction.OpenSettings);
+            return;
+        }
+
+        _notificationService.Show($"{context}: {message}", NotificationLevel.Error);
+    }
+
+    private static bool ContainsAny(string value, params string[] terms) =>
+        terms.Any(term => value.Contains(term, StringComparison.OrdinalIgnoreCase));
 
     [RelayCommand]
     private async Task ToggleFavoriteAsync(ConnectionViewModel? connection)
@@ -403,6 +532,12 @@ public sealed partial class DashboardViewModel : ObservableObject
             var session = await _hoopService.GetSessionAsync();
             UserEmail = session.Email;
             UserStatusMessage = session.IsAuthenticated ? "Logado" : "Deslogado";
+            var authenticationRestored = session.IsAuthenticated && _lastAuthenticationState == false;
+            _lastAuthenticationState = session.IsAuthenticated;
+            if (authenticationRestored)
+            {
+                await LoadConnectionsAsync(showProgress: false);
+            }
         }
         catch (Exception ex)
         {
@@ -464,7 +599,7 @@ public sealed partial class DashboardViewModel : ObservableObject
         {
             connection.Status = status;
             connection.StatusDetail = detail;
-            if (status != ConnectionStatus.Connected)
+            if (status is not (ConnectionStatus.Connected or ConnectionStatus.Degraded))
             {
                 connection.ClearCredentials();
                 connection.ConnectedAt = null;
@@ -482,14 +617,17 @@ public sealed partial class DashboardViewModel : ObservableObject
             {
                 connection.SetCredentials(tunnel.Credentials);
                 connection.ConnectedAt = tunnel.StartedAt;
-                connection.Status = ConnectionStatus.Connected;
+                connection.Status = tunnel.Status;
             }
             ActiveConnections.Add(connection);
         }
 
         ConnectedCount = ActiveConnections.Count;
         TotalConnections = Connections.Count;
-        OperationalStatus = ConnectedCount == 0
+        var degradedCount = ActiveConnections.Count(connection => connection.Status == ConnectionStatus.Degraded);
+        OperationalStatus = degradedCount > 0
+            ? $"{degradedCount} conexão(ões) instável(is)"
+            : ConnectedCount == 0
             ? "Nenhum túnel ativo"
             : ConnectedCount == 1 ? "1 túnel ativo" : $"{ConnectedCount} túneis ativos";
         FilteredConnections.Refresh();

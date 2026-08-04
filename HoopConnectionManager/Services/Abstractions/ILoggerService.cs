@@ -11,6 +11,9 @@ public interface ILoggerService
     event EventHandler<LogEntry>? LogWritten;
     string LogsDirectory { get; }
     IReadOnlyList<LogEntry> GetRecentEntries(int maximumCount = 500);
+    LogStorageInfo GetStorageInfo();
+    int ClearOldLogs();
+    void ApplyRetention();
     void LogInformation(string message);
     void LogWarning(string message);
     void LogError(string message);

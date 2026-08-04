@@ -9,6 +9,7 @@ public enum ConnectionStatus
     Connecting,
     Reconnecting,
     Connected,
+    Degraded,
     Disconnecting,
     Error
 }

@@ -20,12 +20,14 @@ public sealed class ActiveTunnelsChangedEventArgs : EventArgs
     public string ConnectionName { get; }
     public ConnectionStatus Status { get; }
     public string? Detail { get; }
-    public bool IsConnected => Status == ConnectionStatus.Connected;
+    public bool TunnelRecreated { get; }
+    public bool IsConnected => Status is ConnectionStatus.Connected or ConnectionStatus.Degraded;
 
-    public ActiveTunnelsChangedEventArgs(string connectionName, ConnectionStatus status, string? detail = null)
+    public ActiveTunnelsChangedEventArgs(string connectionName, ConnectionStatus status, string? detail = null, bool tunnelRecreated = false)
     {
         ConnectionName = connectionName;
         Status = status;
         Detail = detail;
+        TunnelRecreated = tunnelRecreated;
     }
 }

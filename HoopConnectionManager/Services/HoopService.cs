@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
 using HoopConnectionManager.Configuration;
 using HoopConnectionManager.Models;
@@ -18,6 +19,7 @@ public sealed class HoopService : IHoopService
     private readonly ICommandRunner _commandRunner;
     private readonly ISettingsService _settingsService;
     private readonly ILoggerService _logger;
+    private readonly Func<bool> _isNetworkAvailable;
     private readonly object _portLock = new();
     private readonly HashSet<int> _reservedPorts = [];
     private bool? _supportsUserInfo;
@@ -25,10 +27,16 @@ public sealed class HoopService : IHoopService
     public string? ExecutablePath { get; private set; }
 
     public HoopService(ICommandRunner commandRunner, ISettingsService settingsService, ILoggerService logger)
+        : this(commandRunner, settingsService, logger, NetworkInterface.GetIsNetworkAvailable)
+    {
+    }
+
+    public HoopService(ICommandRunner commandRunner, ISettingsService settingsService, ILoggerService logger, Func<bool> isNetworkAvailable)
     {
         _commandRunner = commandRunner;
         _settingsService = settingsService;
         _logger = logger;
+        _isNetworkAvailable = isNetworkAvailable;
     }
 
     public async Task<bool> IsInstalledAsync(CancellationToken cancellationToken = default)
@@ -178,7 +186,7 @@ public sealed class HoopService : IHoopService
 
         _logger.LogInformation($"Iniciando conexão Hoop: {connectionName}");
 
-        var localPort = ReserveLocalPort();
+        var localPort = ReserveLocalPort(out var usedAlternativePort);
         var processStartInfo = new ProcessStartInfo
         {
             FileName = ExecutablePath!,
@@ -351,6 +359,7 @@ public sealed class HoopService : IHoopService
             ErrorMessage = credentials is null
                 ? BuildConnectionErrorMessage(GetDiagnostic())
                 : null,
+            UsedAlternativePort = usedAlternativePort,
             ReleaseResources = () => ReleaseReservedPort(localPort)
         };
 
@@ -403,6 +412,51 @@ public sealed class HoopService : IHoopService
         };
     }
 
+    public async Task<GlobalConnectivity> GetConnectivityAsync(CancellationToken cancellationToken = default)
+    {
+        if (!_isNetworkAvailable())
+        {
+            return new(GlobalConnectivityState.NoNetwork, "O Windows não detectou uma conexão de rede disponível.");
+        }
+
+        if (!await IsInstalledAsync(cancellationToken))
+        {
+            return new(GlobalConnectivityState.HoopDisconnected, "O executável Hoop CLI não foi localizado.");
+        }
+
+        var result = await RunAsync("admin get userinfo", cancellationToken: cancellationToken, logFailure: false);
+        if (result.Success)
+        {
+            return new(GlobalConnectivityState.Online, "Rede, gateway e autenticação estão operacionais.");
+        }
+
+        var diagnostic = $"{result.StandardError} {result.StandardOutput}";
+        if (diagnostic.Contains("unknown command", StringComparison.OrdinalIgnoreCase))
+        {
+            result = await RunAsync("admin get connections", cancellationToken: cancellationToken, logFailure: false);
+            if (result.Success)
+            {
+                return new(GlobalConnectivityState.Online, "Gateway e sessão Hoop estão operacionais.");
+            }
+            diagnostic = $"{result.StandardError} {result.StandardOutput}";
+        }
+
+        if (ContainsAny(diagnostic, "unauthorized", "unauthenticated", "authentication required", "token expired", "expired token", "login required", "please login", "not logged in", "invalid token", "status 401", "status 403"))
+        {
+            return new(GlobalConnectivityState.AuthenticationExpired, "A autenticação expirou. Use Autenticar novamente em Configurações.");
+        }
+
+        if (ContainsAny(diagnostic, "connection refused", "connection reset", "connection error", "no such host", "network is unreachable", "dial tcp", "i/o timeout", "timeout", "timed out", "deadline exceeded", "unavailable", "status 502", "status 503", "status 504"))
+        {
+            return new(GlobalConnectivityState.GatewayUnavailable, "A rede existe, mas o gateway Hoop não está respondendo. Verifique a VPN.");
+        }
+
+        return new(GlobalConnectivityState.HoopDisconnected, "O Hoop não confirmou uma sessão válida neste computador.");
+    }
+
+    private static bool ContainsAny(string value, params string[] terms) =>
+        terms.Any(term => value.Contains(term, StringComparison.OrdinalIgnoreCase));
+
     private static string BuildConnectionErrorMessage(string diagnostic)
     {
         const string fallback = "Não foi possível obter os dados do túnel.";
@@ -411,7 +465,7 @@ public sealed class HoopService : IHoopService
             : $"{fallback} Detalhes do Hoop: {diagnostic}";
     }
 
-    private int ReserveLocalPort()
+    private int ReserveLocalPort(out bool usedAlternativePort)
     {
         lock (_portLock)
         {
@@ -423,10 +477,16 @@ public sealed class HoopService : IHoopService
                 }
 
                 _reservedPorts.Add(port);
+                usedAlternativePort = port != 5433;
+                if (usedAlternativePort)
+                {
+                    _logger.LogInformation($"Porta local preferencial ocupada; selecionada automaticamente a porta {port}.");
+                }
                 return port;
             }
         }
 
+        usedAlternativePort = false;
         throw new InvalidOperationException("Não há uma porta local disponível para abrir o túnel.");
     }
 

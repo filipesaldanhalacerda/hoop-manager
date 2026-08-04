@@ -10,8 +10,11 @@ public sealed class NotificationService : INotificationService
 {
     public event EventHandler<NotificationEventArgs>? NotificationRaised;
 
-    public void Show(string message, NotificationLevel level = NotificationLevel.Information)
+    public void Show(
+        string message,
+        NotificationLevel level = NotificationLevel.Information,
+        NotificationAction action = NotificationAction.None)
     {
-        NotificationRaised?.Invoke(this, new NotificationEventArgs(message, level));
+        NotificationRaised?.Invoke(this, new NotificationEventArgs(message, level, action));
     }
 }

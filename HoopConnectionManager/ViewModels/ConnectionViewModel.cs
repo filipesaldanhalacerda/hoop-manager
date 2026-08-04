@@ -23,7 +23,7 @@ public sealed partial class ConnectionViewModel : ObservableObject
     [ObservableProperty] private bool _isPasswordVisible;
 
     public bool CanConnect => Status is ConnectionStatus.Disconnected or ConnectionStatus.Error;
-    public bool CanDisconnect => Status is ConnectionStatus.Connected or ConnectionStatus.Reconnecting;
+    public bool CanDisconnect => Status is ConnectionStatus.Connected or ConnectionStatus.Degraded or ConnectionStatus.Reconnecting;
     public string LocalEndpoint => Host is not null && Port is not null ? $"{Host}:{Port}" : "Aguardando túnel";
     public string PasswordDisplay => string.IsNullOrEmpty(Password)
         ? "Indisponível"
@@ -34,6 +34,7 @@ public sealed partial class ConnectionViewModel : ObservableObject
         ConnectionStatus.Connecting => "Conectando",
         ConnectionStatus.Reconnecting => "Reconectando",
         ConnectionStatus.Connected => "Conectado",
+        ConnectionStatus.Degraded => "Instável",
         ConnectionStatus.Disconnecting => "Desconectando",
         ConnectionStatus.Error => "Erro",
         _ => "Desconectado"

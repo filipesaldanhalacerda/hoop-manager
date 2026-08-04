@@ -132,7 +132,10 @@ public sealed partial class WizardViewModel : ObservableObject
         }
         else
         {
-            _notificationService.Show("DBeaver não encontrado. Use o botão Selecionar DBeaver para informar o caminho.", NotificationLevel.Warning);
+            _notificationService.Show(
+                "DBeaver não encontrado — selecione o executável para continuar.",
+                NotificationLevel.Warning,
+                NotificationAction.SelectDBeaver);
         }
     }
 

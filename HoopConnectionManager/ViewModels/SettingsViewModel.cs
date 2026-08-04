@@ -33,6 +33,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _minimizeToTray = true;
 
     [ObservableProperty]
+    private bool _disconnectTunnelsOnExit = true;
+
+    [ObservableProperty]
     private bool _openDBeaverAutomatically = true;
 
     [ObservableProperty]
@@ -45,6 +48,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string _saveStatus = "Alterações são aplicadas ao salvar.";
 
     [ObservableProperty] private string _hoopVersion = "Verificando...";
+    public string DevAccessCenterVersion => ApplicationVersion.Current;
     [ObservableProperty] private string _hoopGateway = "Verificando...";
     [ObservableProperty] private string _hoopConfigurationSource = "Verificando...";
     [ObservableProperty] private string _hoopAuthenticationStatus = "Verificando...";
@@ -187,6 +191,7 @@ public sealed partial class SettingsViewModel : ObservableObject
                 settings.DBeaverExecutablePath = DbeaverExecutablePath.Trim();
                 settings.StartWithWindows = StartWithWindows;
                 settings.MinimizeToTray = MinimizeToTray;
+                settings.DisconnectTunnelsOnExit = DisconnectTunnelsOnExit;
                 settings.OpenDBeaverAutomatically = OpenDBeaverAutomatically;
                 settings.RefreshConnectionsOnStartup = RefreshConnectionsOnStartup;
                 settings.Theme = SelectedTheme;
@@ -237,6 +242,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             StartWithWindows = settings.StartWithWindows;
         }
         MinimizeToTray = settings.MinimizeToTray;
+        DisconnectTunnelsOnExit = settings.DisconnectTunnelsOnExit;
         OpenDBeaverAutomatically = settings.OpenDBeaverAutomatically;
         RefreshConnectionsOnStartup = settings.RefreshConnectionsOnStartup;
         SelectedTheme = settings.Theme;

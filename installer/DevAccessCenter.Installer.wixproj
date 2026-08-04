@@ -1,0 +1,13 @@
+<Project Sdk="WixToolset.Sdk/4.0.5">
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <OutputName>DevAccessCenter-$(ProductVersion)-x64</OutputName>
+    <Platform>x64</Platform>
+    <ProductVersion Condition="'$(ProductVersion)' == ''">1.0.0</ProductVersion>
+    <PublishDirectory>$(MSBuildThisFileDirectory)..\artifacts\publish\win-x64</PublishDirectory>
+    <DefineConstants>ProductVersion=$(ProductVersion);PublishDirectory=$(PublishDirectory)</DefineConstants>
+  </PropertyGroup>
+  <Target Name="PublishDevAccessCenter" BeforeTargets="BeforeBuild">
+    <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)..\HoopConnectionManager\HoopConnectionManager.csproj&quot; -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -p:Version=$(ProductVersion) -p:AssemblyVersion=$(ProductVersion).0 -p:FileVersion=$(ProductVersion).0 -p:InformationalVersion=$(ProductVersion) -o &quot;$(PublishDirectory)&quot;" />
+  </Target>
+</Project>

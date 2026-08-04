@@ -85,7 +85,7 @@ public sealed class ConnectionServiceTests
     [TestMethod]
     public async Task TracksAndDisconnectsTunnel()
     {
-        var service = new ConnectionService(new FakeHoopService(), new FakeLogger());
+        var service = new ConnectionService(new FakeHoopService(), new FakeLogger(), new FakeSessionHistory());
         await service.ConnectAsync("dev");
         Assert.IsTrue(service.IsConnected("dev"));
         await service.DisconnectAsync("dev");
@@ -95,7 +95,7 @@ public sealed class ConnectionServiceTests
     [TestMethod]
     public async Task TracksMultipleTunnelsAtTheSameTime()
     {
-        var service = new ConnectionService(new FakeHoopService(), new FakeLogger());
+        var service = new ConnectionService(new FakeHoopService(), new FakeLogger(), new FakeSessionHistory());
 
         var first = await service.ConnectAsync("orders-dev");
         var second = await service.ConnectAsync("payments-prd");
@@ -119,6 +119,8 @@ public sealed class ConnectionServiceTests
             Credentials = new ConnectionCredentials("127.0.0.1", Interlocked.Increment(ref _nextPort), "hoop", "temporary")
         });
         public Task DisconnectAsync(string name) => Task.CompletedTask;
+        public Task<GlobalConnectivity> GetConnectivityAsync(CancellationToken token = default) =>
+            Task.FromResult(new GlobalConnectivity(GlobalConnectivityState.Online, "OK"));
         public Task<HoopDiagnostics> GetDiagnosticsAsync(CancellationToken token = default) => Task.FromResult(new HoopDiagnostics());
         public Task<IReadOnlyList<Connection>> GetConnectionsAsync(CancellationToken token = default) => Task.FromResult<IReadOnlyList<Connection>>([]);
         public Task<UserSession> GetSessionAsync(CancellationToken token = default) => Task.FromResult(new UserSession());
@@ -130,10 +132,21 @@ public sealed class ConnectionServiceTests
         public event EventHandler<LogEntry>? LogWritten { add { } remove { } }
         public string LogsDirectory => string.Empty;
         public IReadOnlyList<LogEntry> GetRecentEntries(int maximumCount = 500) => [];
+        public LogStorageInfo GetStorageInfo() => new(0, 0, null);
+        public int ClearOldLogs() => 0;
+        public void ApplyRetention() { }
         public void LogError(string m) { }
         public void LogError(Exception e, string m) { }
         public void LogInformation(string m) { }
         public void LogWarning(string m) { }
+    }
+
+    private sealed class FakeSessionHistory : ISessionHistoryService
+    {
+        public event EventHandler? HistoryChanged { add { } remove { } }
+        public IReadOnlyList<SessionHistoryEntry> GetEntries() => [];
+        public void StartSession(ActiveTunnel tunnel) { }
+        public void EndSession(string tunnelId, string reason) { }
     }
 
     [TestMethod]
@@ -183,5 +196,38 @@ public sealed class CredentialTests
 
         Assert.AreEqual(string.Empty, credentials.Password);
         Assert.IsFalse(credentials.ToString().Contains("temporary-secret", StringComparison.Ordinal));
+    }
+}
+
+[TestClass]
+public sealed class SessionHistoryTests
+{
+    [TestMethod]
+    public void PersistsSessionMetadataWithoutCredentials()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "dev-access-history-tests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var service = new SessionHistoryService(directory);
+            var tunnel = new ActiveTunnel
+            {
+                ConnectionName = "orders-dev",
+                Credentials = new ConnectionCredentials("127.0.0.1", 5434, "hoop", "secret-that-must-not-be-saved")
+            };
+
+            service.StartSession(tunnel);
+            service.EndSession(tunnel.Id, "Desconectado pelo usuário");
+
+            var entry = service.GetEntries().Single();
+            Assert.AreEqual("orders-dev", entry.ConnectionName);
+            Assert.AreEqual(5434, entry.Port);
+            Assert.IsNotNull(entry.EndedAt);
+            var persisted = File.ReadAllText(Path.Combine(directory, "session-history.json"));
+            Assert.IsFalse(persisted.Contains("secret-that-must-not-be-saved", StringComparison.Ordinal));
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, true);
+        }
     }
 }

@@ -12,17 +12,21 @@ public sealed class ConnectionService : IConnectionService, IDisposable
 {
     private static readonly TimeSpan[] ReconnectDelays =
     [
-        TimeSpan.FromSeconds(3),
-        TimeSpan.FromSeconds(10),
-        TimeSpan.FromSeconds(30)
+        TimeSpan.FromSeconds(5),
+        TimeSpan.FromSeconds(15),
+        TimeSpan.FromSeconds(30),
+        TimeSpan.FromSeconds(60)
     ];
 
     private readonly IHoopService _hoopService;
     private readonly ILoggerService _logger;
+    private readonly ISessionHistoryService _sessionHistory;
     private readonly Dictionary<string, ActiveTunnel> _tunnels = new();
     private readonly HashSet<string> _desiredConnections = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _disconnectingConnections = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, CancellationTokenSource> _reconnectCancellations = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _healthFailures = new(StringComparer.OrdinalIgnoreCase);
+    private readonly CancellationTokenSource _healthMonitorCancellation = new();
     private readonly object _lock = new();
 
     public IReadOnlyDictionary<string, ActiveTunnel> ActiveTunnels
@@ -38,10 +42,12 @@ public sealed class ConnectionService : IConnectionService, IDisposable
 
     public event EventHandler<ActiveTunnelsChangedEventArgs>? ActiveTunnelsChanged;
 
-    public ConnectionService(IHoopService hoopService, ILoggerService logger)
+    public ConnectionService(IHoopService hoopService, ILoggerService logger, ISessionHistoryService sessionHistory)
     {
         _hoopService = hoopService;
         _logger = logger;
+        _sessionHistory = sessionHistory;
+        _ = MonitorHealthAsync(_healthMonitorCancellation.Token);
     }
 
     public async Task<ActiveTunnel> ConnectAsync(string connectionName, CancellationToken cancellationToken = default)
@@ -92,6 +98,7 @@ public sealed class ConnectionService : IConnectionService, IDisposable
         }
 
         StartMonitoring(tunnel);
+        _sessionHistory.StartSession(tunnel);
         RaiseChanged(connectionName, ConnectionStatus.Connected);
         return tunnel;
     }
@@ -143,6 +150,7 @@ public sealed class ConnectionService : IConnectionService, IDisposable
             }
 
             _logger.LogInformation($"Túnel '{connectionName}' finalizado e porta local confirmada como fechada.");
+            if (tunnel is not null) _sessionHistory.EndSession(tunnel.Id, "Desconectado pelo usuário");
             RaiseChanged(connectionName, ConnectionStatus.Disconnected, "Processo Hoop encerrado e porta local fechada.");
         }
         catch (Exception ex)
@@ -152,6 +160,7 @@ public sealed class ConnectionService : IConnectionService, IDisposable
                 _disconnectingConnections.Remove(connectionName);
             }
             _logger.LogError(ex, $"Falha ao confirmar a desconexão de '{connectionName}'.");
+            if (tunnel is not null) _sessionHistory.EndSession(tunnel.Id, "Falha durante o encerramento");
             RaiseChanged(connectionName, ConnectionStatus.Error, "Não foi possível confirmar o encerramento do túnel.");
             throw new InvalidOperationException("Não foi possível confirmar que o túnel e a porta local foram encerrados.", ex);
         }
@@ -162,13 +171,24 @@ public sealed class ConnectionService : IConnectionService, IDisposable
         List<string> names;
         lock (_lock)
         {
-            names = _desiredConnections.ToList();
+            names = _desiredConnections.Concat(_tunnels.Keys).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 
+        List<Exception>? failures = null;
         foreach (var name in names)
         {
-            await DisconnectAsync(name);
+            try
+            {
+                await DisconnectAsync(name);
+            }
+            catch (Exception ex)
+            {
+                (failures ??= []).Add(ex);
+            }
         }
+
+        if (failures is not null)
+            throw new AggregateException("Uma ou mais conexões não puderam ser encerradas normalmente.", failures);
     }
 
     public bool IsConnected(string connectionName)
@@ -176,7 +196,7 @@ public sealed class ConnectionService : IConnectionService, IDisposable
         lock (_lock)
         {
             return _tunnels.TryGetValue(connectionName, out var tunnel)
-                && tunnel.Status == ConnectionStatus.Connected
+                && tunnel.Status is ConnectionStatus.Connected or ConnectionStatus.Degraded
                 && (tunnel.Process is null || !tunnel.Process.HasExited);
         }
     }
@@ -230,12 +250,12 @@ public sealed class ConnectionService : IConnectionService, IDisposable
             return;
         }
 
-        tunnel.Status = ConnectionStatus.Reconnecting;
-        tunnel.Dispose(); // Libera credenciais e a porta reservada antes do retry.
-
         var detail = exitCode is null
             ? "O processo Hoop encerrou inesperadamente."
             : $"O processo Hoop encerrou com código {exitCode}.";
+        tunnel.Status = ConnectionStatus.Reconnecting;
+        _sessionHistory.EndSession(tunnel.Id, detail);
+        tunnel.Dispose(); // Libera credenciais e a porta reservada antes do retry.
         _logger.LogWarning($"{detail} Conexão: '{tunnel.ConnectionName}'.");
         RaiseChanged(tunnel.ConnectionName, ConnectionStatus.Reconnecting, detail);
 
@@ -253,6 +273,12 @@ public sealed class ConnectionService : IConnectionService, IDisposable
                 return;
             }
 
+            if (_reconnectCancellations.ContainsKey(connectionName))
+            {
+                cancellation.Dispose();
+                return;
+            }
+
             _reconnectCancellations[connectionName] = cancellation;
         }
 
@@ -265,6 +291,15 @@ public sealed class ConnectionService : IConnectionService, IDisposable
                 RaiseChanged(connectionName, ConnectionStatus.Reconnecting,
                     $"Tentativa {attempt + 1} de {ReconnectDelays.Length} em {delay.TotalSeconds:0} segundos.");
                 await Task.Delay(delay, cancellation.Token);
+
+                if (!await _hoopService.IsAuthenticatedAsync(cancellation.Token))
+                {
+                    lastError = new InvalidOperationException("Sessão Hoop ou rede corporativa indisponível.");
+                    _logger.LogWarning(
+                        $"Reconexão de '{connectionName}' adiada: autenticação/gateway indisponível " +
+                        $"na tentativa {attempt + 1} de {ReconnectDelays.Length}.");
+                    continue;
+                }
 
                 var tunnel = await CreateConnectedTunnelAsync(connectionName, cancellation.Token);
                 var accepted = false;
@@ -286,8 +321,9 @@ public sealed class ConnectionService : IConnectionService, IDisposable
                 }
 
                 StartMonitoring(tunnel);
+                _sessionHistory.StartSession(tunnel);
                 _logger.LogInformation($"Túnel '{connectionName}' restabelecido automaticamente na tentativa {attempt + 1}.");
-                RaiseChanged(connectionName, ConnectionStatus.Connected, "Conexão restabelecida automaticamente.");
+                RaiseChanged(connectionName, ConnectionStatus.Connected, "Conexão restabelecida automaticamente.", tunnelRecreated: true);
                 cancellation.Dispose();
                 return;
             }
@@ -310,7 +346,9 @@ public sealed class ConnectionService : IConnectionService, IDisposable
         }
 
         cancellation.Dispose();
-        var finalMessage = $"Não foi possível restabelecer após {ReconnectDelays.Length} tentativas: {lastError?.Message}";
+        var finalMessage =
+            $"Não foi possível restabelecer após {ReconnectDelays.Length} tentativas: {lastError?.Message} " +
+            "A reconexão automática foi pausada para evitar tentativas contínuas; use Conectar quando a rede voltar.";
         _logger.LogError(finalMessage);
         RaiseChanged(connectionName, ConnectionStatus.Error, finalMessage);
     }
@@ -324,6 +362,152 @@ public sealed class ConnectionService : IConnectionService, IDisposable
         catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException)
         {
             return null;
+        }
+    }
+
+    private async Task MonitorHealthAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                try
+                {
+                    await CheckTunnelHealthAsync(cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"A verificação de saúde dos túneis falhou: {ex.Message}");
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+    }
+
+    private async Task CheckTunnelHealthAsync(CancellationToken cancellationToken)
+    {
+        List<ActiveTunnel> tunnels;
+        lock (_lock)
+        {
+            tunnels = _tunnels.Values.ToList();
+        }
+
+        if (tunnels.Count == 0)
+        {
+            return;
+        }
+
+        var authenticated = await _hoopService.IsAuthenticatedAsync(cancellationToken);
+        foreach (var tunnel in tunnels)
+        {
+            if (tunnel.Credentials is null || !IsProcessRunning(tunnel.Process))
+            {
+                continue;
+            }
+
+            var endpointAvailable = await CanReachLocalEndpointAsync(
+                tunnel.Credentials.Host,
+                tunnel.Credentials.Port,
+                cancellationToken);
+            var isHealthy = authenticated && endpointAvailable;
+            var failureCount = 0;
+            var recovered = false;
+            var startRecovery = false;
+
+            lock (_lock)
+            {
+                if (!_tunnels.TryGetValue(tunnel.ConnectionName, out var current) || !ReferenceEquals(current, tunnel))
+                {
+                    continue;
+                }
+
+                if (isHealthy)
+                {
+                    _healthFailures.Remove(tunnel.ConnectionName);
+                    if (tunnel.Status == ConnectionStatus.Degraded)
+                    {
+                        tunnel.Status = ConnectionStatus.Connected;
+                        recovered = true;
+                    }
+                }
+                else
+                {
+                    _healthFailures.TryGetValue(tunnel.ConnectionName, out failureCount);
+                    failureCount++;
+                    _healthFailures[tunnel.ConnectionName] = failureCount;
+                    if (failureCount >= 2)
+                    {
+                        tunnel.Status = ConnectionStatus.Degraded;
+                    }
+
+                    if (failureCount >= 4
+                        && _desiredConnections.Contains(tunnel.ConnectionName)
+                        && !_disconnectingConnections.Contains(tunnel.ConnectionName)
+                        && !_reconnectCancellations.ContainsKey(tunnel.ConnectionName))
+                    {
+                        _tunnels.Remove(tunnel.ConnectionName);
+                        _healthFailures.Remove(tunnel.ConnectionName);
+                        tunnel.Status = ConnectionStatus.Reconnecting;
+                        startRecovery = true;
+                    }
+                }
+            }
+
+            if (startRecovery)
+            {
+                const string detail = "O túnel permaneceu instável; iniciando recuperação progressiva controlada.";
+                _logger.LogWarning($"{detail} Conexão: '{tunnel.ConnectionName}'.");
+                RaiseChanged(tunnel.ConnectionName, ConnectionStatus.Reconnecting, detail);
+                tunnel.Dispose();
+                _sessionHistory.EndSession(tunnel.Id, "Túnel instável; recuperação automática iniciada");
+                _ = ReconnectAsync(tunnel.ConnectionName);
+            }
+            else if (recovered)
+            {
+                _logger.LogInformation($"Saúde normalizada em '{tunnel.ConnectionName}'.");
+                RaiseChanged(tunnel.ConnectionName, ConnectionStatus.Connected, "Processo, sessão Hoop e endpoint local estão operacionais.");
+            }
+            else if (!isHealthy && failureCount == 2)
+            {
+                var detail = !authenticated
+                    ? "O processo está ativo, mas a sessão do Hoop não pôde ser confirmada."
+                    : "O processo está ativo, mas a porta local não está respondendo.";
+                _logger.LogWarning($"Saúde degradada em '{tunnel.ConnectionName}': {detail}");
+                RaiseChanged(tunnel.ConnectionName, ConnectionStatus.Degraded, detail);
+            }
+        }
+    }
+
+    private static bool IsProcessRunning(System.Diagnostics.Process? process)
+    {
+        try
+        {
+            return process is not null && !process.HasExited;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException)
+        {
+            return false;
+        }
+    }
+
+    private static async Task<bool> CanReachLocalEndpointAsync(string host, int port, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(2));
+            using var client = new TcpClient();
+            await client.ConnectAsync(host, port, timeout.Token);
+            return client.Connected;
+        }
+        catch (Exception ex) when (ex is SocketException or OperationCanceledException)
+        {
+            return false;
         }
     }
 
@@ -346,13 +530,14 @@ public sealed class ConnectionService : IConnectionService, IDisposable
         cancellationToken.ThrowIfCancellationRequested();
     }
 
-    private void RaiseChanged(string connectionName, ConnectionStatus status, string? detail = null)
+    private void RaiseChanged(string connectionName, ConnectionStatus status, string? detail = null, bool tunnelRecreated = false)
     {
-        ActiveTunnelsChanged?.Invoke(this, new ActiveTunnelsChangedEventArgs(connectionName, status, detail));
+        ActiveTunnelsChanged?.Invoke(this, new ActiveTunnelsChangedEventArgs(connectionName, status, detail, tunnelRecreated));
     }
 
     public void Dispose()
     {
+        _healthMonitorCancellation.Cancel();
         List<ActiveTunnel> tunnels;
         List<CancellationTokenSource> cancellations;
         lock (_lock)
@@ -363,6 +548,7 @@ public sealed class ConnectionService : IConnectionService, IDisposable
             _desiredConnections.Clear();
             _disconnectingConnections.Clear();
             _reconnectCancellations.Clear();
+            _healthFailures.Clear();
         }
 
         foreach (var cancellation in cancellations)
@@ -373,7 +559,10 @@ public sealed class ConnectionService : IConnectionService, IDisposable
 
         foreach (var tunnel in tunnels)
         {
+            _sessionHistory.EndSession(tunnel.Id, "Aplicativo encerrado");
             tunnel.Dispose();
         }
+
+        _healthMonitorCancellation.Dispose();
     }
 }

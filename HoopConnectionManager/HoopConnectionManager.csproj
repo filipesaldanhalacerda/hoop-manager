@@ -9,6 +9,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Title>Dev Access Center</Title>
     <Product>Dev Access Center</Product>
+    <AssemblyName>DevAccessCenter</AssemblyName>
+    <VersionPrefix>1.0.0</VersionPrefix>
     <Description>Ferramenta interna para gerenciamento de conexões de desenvolvimento.</Description>
   </PropertyGroup>
 

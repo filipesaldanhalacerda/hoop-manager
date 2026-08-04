@@ -15,6 +15,7 @@ namespace HoopConnectionManager;
 public partial class App : System.Windows.Application
 {
     public static IServiceProvider Services { get; private set; } = default!;
+    private bool _shutdownInProgress;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -42,6 +43,7 @@ public partial class App : System.Windows.Application
 
         var mainWindow = Services.GetRequiredService<MainWindow>();
         mainWindow.DataContext = Services.GetRequiredService<MainWindowViewModel>();
+        mainWindow.ExitRequested += OnExitRequested;
 
         mainWindow.Show();
     }
@@ -84,6 +86,49 @@ public partial class App : System.Windows.Application
             });
         };
 
-        trayIcon.ExitRequested += (_, _) => Current.Shutdown();
+        trayIcon.ExitRequested += ((App)Current).OnExitRequested;
+    }
+
+    private async void OnExitRequested(object? sender, EventArgs e)
+    {
+        if (_shutdownInProgress) return;
+
+        var connectionService = Services.GetRequiredService<IConnectionService>();
+        var settings = Services.GetRequiredService<ISettingsService>().Load();
+        var activeCount = connectionService.ActiveTunnels.Count;
+
+        if (activeCount > 0 && !settings.DisconnectTunnelsOnExit)
+        {
+            var answer = System.Windows.MessageBox.Show(
+                $"Existem {activeCount} {(activeCount == 1 ? "túnel ativo" : "túneis ativos")}. " +
+                "Eles precisam ser encerrados para evitar processos Hoop órfãos. Deseja encerrar e sair?",
+                "Encerrar conexões",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+            if (answer != MessageBoxResult.Yes) return;
+        }
+
+        _shutdownInProgress = true;
+        try
+        {
+            if (activeCount > 0)
+            {
+                Services.GetRequiredService<ITrayIconService>().ShowBalloonTip(
+                    Configuration.ApplicationConstants.ApplicationName,
+                    "Encerrando conexões com segurança...");
+                await connectionService.DisconnectAllAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Services.GetRequiredService<ILoggerService>().LogError(ex,
+                "Uma ou mais conexões não puderam ser encerradas normalmente; os processos restantes serão finalizados na saída.");
+        }
+        finally
+        {
+            Services.GetRequiredService<MainWindow>().AuthorizeShutdown();
+            Shutdown();
+        }
     }
 }

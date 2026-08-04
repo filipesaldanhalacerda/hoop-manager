@@ -13,6 +13,8 @@ public sealed class LoginService : ILoginService
     private readonly ISettingsService _settingsService;
     private readonly ILoggerService _logger;
 
+    public event EventHandler? AuthenticationSucceeded;
+
     public LoginService(
         IHoopService hoopService,
         ICommandRunner commandRunner,
@@ -57,6 +59,7 @@ public sealed class LoginService : ILoginService
         // o comando `whoami`, portanto não devemos transformar um login concluído
         // em falso negativo tentando executá-lo em seguida.
         _logger.LogInformation("Login no Hoop concluído com sucesso.");
+        AuthenticationSucceeded?.Invoke(this, EventArgs.Empty);
         return true;
     }
 }

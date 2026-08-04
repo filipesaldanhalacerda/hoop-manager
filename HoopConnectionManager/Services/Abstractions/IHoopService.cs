@@ -12,6 +12,7 @@ public interface IHoopService
     Task<bool> IsAuthenticatedAsync(CancellationToken cancellationToken = default);
     Task<UserSession> GetSessionAsync(CancellationToken cancellationToken = default);
     Task<HoopDiagnostics> GetDiagnosticsAsync(CancellationToken cancellationToken = default);
+    Task<GlobalConnectivity> GetConnectivityAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Connection>> GetConnectionsAsync(CancellationToken cancellationToken = default);
     Task<ActiveTunnel> ConnectAsync(string connectionName, CancellationToken cancellationToken = default);
     Task DisconnectAsync(string connectionName);

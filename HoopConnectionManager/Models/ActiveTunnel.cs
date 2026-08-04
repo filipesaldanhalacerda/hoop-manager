@@ -15,6 +15,7 @@ public sealed class ActiveTunnel : IDisposable
     public ConnectionStatus Status { get; set; } = ConnectionStatus.Connecting;
     public string? ErrorMessage { get; set; }
     public DateTime StartedAt { get; init; } = DateTime.Now;
+    public bool UsedAlternativePort { get; init; }
     internal Action? ReleaseResources { init => _releaseResources = value; }
 
     /// <summary>Encerra o processo e aguarda a confirmação antes de liberar os recursos.</summary>
