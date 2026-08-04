@@ -52,6 +52,11 @@ public sealed class LoginService : ILoginService
             return false;
         }
 
-        return await _hoopService.IsAuthenticatedAsync(cancellationToken);
+        // O próprio comando aguarda a conclusão do fluxo no navegador e só retorna
+        // sucesso depois de salvar a autenticação. Versões como a 1.51.2 não expõem
+        // o comando `whoami`, portanto não devemos transformar um login concluído
+        // em falso negativo tentando executá-lo em seguida.
+        _logger.LogInformation("Login no Hoop concluído com sucesso.");
+        return true;
     }
 }

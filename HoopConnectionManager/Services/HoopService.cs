@@ -64,7 +64,15 @@ public sealed class HoopService : IHoopService
         try
         {
             var result = await RunAsync("whoami", cancellationToken: cancellationToken);
-            return result.Success && !string.IsNullOrWhiteSpace(result.StandardOutput);
+            if (result.Success && !string.IsNullOrWhiteSpace(result.StandardOutput))
+            {
+                return true;
+            }
+
+            // `whoami` não existe em algumas versões antigas do Hoop (incluindo
+            // a 1.51.x). Um comando autenticado bem-sucedido confirma a sessão.
+            result = await RunAsync("admin get connections", cancellationToken: cancellationToken);
+            return result.Success;
         }
         catch (Exception ex)
         {
@@ -83,13 +91,26 @@ public sealed class HoopService : IHoopService
         try
         {
             var result = await RunAsync("whoami", cancellationToken: cancellationToken);
-            var email = result.StandardOutput.Trim().Split('\n').FirstOrDefault();
+            if (result.Success && !string.IsNullOrWhiteSpace(result.StandardOutput))
+            {
+                var email = result.StandardOutput.Trim().Split('\n').FirstOrDefault();
+
+                return new UserSession
+                {
+                    Email = email,
+                    IsAuthenticated = true,
+                    AuthenticatedAt = DateTime.Now
+                };
+            }
+
+            // Compatibilidade com CLIs sem `whoami`: não será possível obter o
+            // e-mail, mas ainda podemos confirmar que as credenciais são válidas.
+            result = await RunAsync("admin get connections", cancellationToken: cancellationToken);
 
             return new UserSession
             {
-                Email = email,
-                IsAuthenticated = !string.IsNullOrWhiteSpace(email),
-                AuthenticatedAt = DateTime.Now
+                IsAuthenticated = result.Success,
+                AuthenticatedAt = result.Success ? DateTime.Now : null
             };
         }
         catch (Exception ex)
