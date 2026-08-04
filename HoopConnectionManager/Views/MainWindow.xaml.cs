@@ -1,5 +1,6 @@
 using System.Windows;
 using HoopConnectionManager.Services.Abstractions;
+using HoopConnectionManager.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace HoopConnectionManager.Views;
@@ -28,7 +29,7 @@ public partial class MainWindow : Window
         {
             e.Cancel = true;
             Hide();
-            _trayIconService.ShowBalloonTip("Hoop Connection Manager", "Aplicativo minimizado para a bandeja.");
+            _trayIconService.ShowBalloonTip(ApplicationConstants.ApplicationName, "Aplicativo minimizado para a bandeja.");
         }
     }
 }

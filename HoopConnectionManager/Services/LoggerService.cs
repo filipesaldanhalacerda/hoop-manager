@@ -26,7 +26,7 @@ public sealed class LoggerService : ILoggerService
     public LoggerService()
     {
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var rootDirectory = Path.Combine(appData, ApplicationConstants.ApplicationName);
+        var rootDirectory = Path.Combine(appData, ApplicationConstants.StorageRootName);
         _logsDirectory = Path.Combine(rootDirectory, ApplicationConstants.LogsDirectoryName);
         _logFilePath = Path.Combine(_logsDirectory, $"log-{DateTime.Now:yyyy-MM-dd}.txt");
 
@@ -37,7 +37,7 @@ public sealed class LoggerService : ILoggerService
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _logsDirectory = Path.Combine(Path.GetTempPath(), ApplicationConstants.ApplicationName, ApplicationConstants.LogsDirectoryName);
+            _logsDirectory = Path.Combine(Path.GetTempPath(), ApplicationConstants.StorageRootName, ApplicationConstants.LogsDirectoryName);
             _logFilePath = Path.Combine(_logsDirectory, $"log-{DateTime.Now:yyyy-MM-dd}.txt");
             Directory.CreateDirectory(_logsDirectory);
         }

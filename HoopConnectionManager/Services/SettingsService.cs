@@ -21,7 +21,7 @@ public sealed class SettingsService : ISettingsService
     public SettingsService(string? baseDirectory = null)
     {
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        _settingsDirectory = baseDirectory ?? Path.Combine(localAppData, ApplicationConstants.ApplicationName, ApplicationConstants.DataDirectoryName);
+        _settingsDirectory = baseDirectory ?? Path.Combine(localAppData, ApplicationConstants.StorageRootName, ApplicationConstants.DataDirectoryName);
         _settingsPath = Path.Combine(_settingsDirectory, ApplicationConstants.SettingsFileName);
 
         _jsonOptions = new JsonSerializerOptions

@@ -69,6 +69,42 @@
                 <StackPanel Grid.Column="2">
                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,18">
                         <StackPanel>
+                            <TextBlock Text="DIAGNÓSTICO SEGURO" Style="{StaticResource EyebrowText}" />
+                            <TextBlock Text="Ambiente Hoop" Style="{StaticResource SectionHeading}" Margin="0,5,0,6" />
+                            <TextBlock Text="Informações não sensíveis obtidas pelos comandos oficiais. Tokens nunca são consultados."
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,16" />
+
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="VERSÃO" Style="{StaticResource EyebrowText}" />
+                                <TextBlock Grid.Column="1" Text="{Binding HoopVersion}" Foreground="{DynamicResource ForegroundBrush}"
+                                           FontFamily="{DynamicResource MonoFontFamily}" TextWrapping="Wrap" />
+                            </Grid>
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="GATEWAY" Style="{StaticResource EyebrowText}" />
+                                <TextBlock Grid.Column="1" Text="{Binding HoopGateway}" Foreground="{DynamicResource ForegroundBrush}"
+                                           FontFamily="{DynamicResource MonoFontFamily}" TextWrapping="Wrap" />
+                            </Grid>
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="CONFIGURAÇÃO" Style="{StaticResource EyebrowText}" />
+                                <TextBlock Grid.Column="1" Text="{Binding HoopConfigurationSource}" Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" />
+                            </Grid>
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="SESSÃO" Style="{StaticResource EyebrowText}" />
+                                <TextBlock Grid.Column="1" Text="{Binding HoopAuthenticationStatus}" Foreground="{DynamicResource SuccessBrush}" FontWeight="SemiBold" />
+                            </Grid>
+                            <TextBlock Text="{Binding HoopCompatibilityStatus}" Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                       FontSize="10" TextWrapping="Wrap" Margin="0,2,0,14" />
+                            <Button Content="Autenticar novamente" Command="{Binding ReauthenticateHoopCommand}"
+                                    Style="{StaticResource FluentButton}" HorizontalAlignment="Left" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,18">
+                        <StackPanel>
                             <TextBlock Text="APARÊNCIA" Style="{StaticResource EyebrowText}" />
                             <TextBlock Text="Tema da interface" Style="{StaticResource SectionHeading}" Margin="0,5,0,6" />
                             <TextBlock Text="Use o tema do Windows ou escolha uma preferência fixa."

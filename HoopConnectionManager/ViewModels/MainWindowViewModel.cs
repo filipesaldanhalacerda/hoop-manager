@@ -14,7 +14,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private CancellationTokenSource? _notificationCancellation;
 
     [ObservableProperty]
-    private string _title = "Hoop Connection Manager";
+    private string _title = "Dev Access Center";
 
     [ObservableProperty]
     private object? _currentViewModel;
@@ -33,6 +33,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isNotificationVisible;
+
+    [ObservableProperty]
+    private bool _isSecurityDetailsVisible;
 
     public MainWindowViewModel(INavigationService navigationService, ILoggerService logger, INotificationService notificationService)
     {
@@ -74,6 +77,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _notificationCancellation?.Cancel();
         IsNotificationVisible = false;
     }
+
+    [RelayCommand]
+    private void ShowSecurityDetails() => IsSecurityDetailsVisible = true;
+
+    [RelayCommand]
+    private void HideSecurityDetails() => IsSecurityDetailsVisible = false;
 
     private void ShowNotification(NotificationEventArgs notification)
     {

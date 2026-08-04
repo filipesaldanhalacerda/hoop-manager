@@ -16,6 +16,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IStartupService _startupService;
     private readonly INotificationService _notificationService;
     private readonly ILoggerService _logger;
+    private readonly IHoopService _hoopService;
+    private readonly ILoginService _loginService;
     private CancellationTokenSource? _themeSaveCancellation;
 
     [ObservableProperty]
@@ -42,19 +44,92 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string _saveStatus = "Alterações são aplicadas ao salvar.";
 
+    [ObservableProperty] private string _hoopVersion = "Verificando...";
+    [ObservableProperty] private string _hoopGateway = "Verificando...";
+    [ObservableProperty] private string _hoopConfigurationSource = "Verificando...";
+    [ObservableProperty] private string _hoopAuthenticationStatus = "Verificando...";
+    [ObservableProperty] private string _hoopCompatibilityStatus = "Verificando...";
+    [ObservableProperty] private bool _isHoopDiagnosticsBusy;
+
     public IReadOnlyList<string> Themes { get; } = ["Auto", "Light", "Dark"];
 
     public SettingsViewModel(
         ISettingsService settingsService,
         IStartupService startupService,
         INotificationService notificationService,
-        ILoggerService logger)
+        ILoggerService logger,
+        IHoopService hoopService,
+        ILoginService loginService)
     {
         _settingsService = settingsService;
         _startupService = startupService;
         _notificationService = notificationService;
         _logger = logger;
+        _hoopService = hoopService;
+        _loginService = loginService;
         LoadSettings();
+        _ = RefreshHoopDiagnosticsAsync();
+    }
+
+    [RelayCommand]
+    private async Task RefreshHoopDiagnosticsAsync()
+    {
+        if (IsHoopDiagnosticsBusy)
+        {
+            return;
+        }
+
+        IsHoopDiagnosticsBusy = true;
+        try
+        {
+            var diagnostics = await _hoopService.GetDiagnosticsAsync();
+            HoopVersion = diagnostics.Version;
+            HoopGateway = diagnostics.GatewayUrl;
+            HoopConfigurationSource = diagnostics.ConfigurationSource;
+            HoopAuthenticationStatus = diagnostics.IsAuthenticated ? "Autenticado" : "Autenticação necessária";
+            HoopCompatibilityStatus = diagnostics.SupportsVersionManager
+                ? "Compatível com sincronização de versão pelo gateway"
+                : "CLI anterior à 1.74: atualização deve seguir a central corporativa";
+        }
+        catch (Exception ex)
+        {
+            HoopAuthenticationStatus = "Não foi possível verificar";
+            HoopCompatibilityStatus = ex.Message;
+            _logger.LogError(ex, "Falha ao obter diagnóstico seguro do Hoop.");
+        }
+        finally
+        {
+            IsHoopDiagnosticsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ReauthenticateHoopAsync()
+    {
+        if (IsHoopDiagnosticsBusy)
+        {
+            return;
+        }
+
+        IsHoopDiagnosticsBusy = true;
+        try
+        {
+            var success = await _loginService.LoginAsync();
+            _notificationService.Show(
+                success ? "Autenticação do Hoop renovada." : "O Hoop não confirmou a autenticação.",
+                success ? NotificationLevel.Information : NotificationLevel.Warning);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao renovar autenticação do Hoop.");
+            _notificationService.Show($"Falha ao autenticar: {ex.Message}", NotificationLevel.Error);
+        }
+        finally
+        {
+            IsHoopDiagnosticsBusy = false;
+        }
+
+        await RefreshHoopDiagnosticsAsync();
     }
 
     partial void OnSelectedThemeChanged(string value)

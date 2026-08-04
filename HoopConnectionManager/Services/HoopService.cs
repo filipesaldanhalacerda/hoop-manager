@@ -20,6 +20,7 @@ public sealed class HoopService : IHoopService
     private readonly ILoggerService _logger;
     private readonly object _portLock = new();
     private readonly HashSet<int> _reservedPorts = [];
+    private bool? _supportsUserInfo;
 
     public string? ExecutablePath { get; private set; }
 
@@ -66,15 +67,20 @@ public sealed class HoopService : IHoopService
 
         try
         {
-            var result = await RunAsync("whoami", cancellationToken: cancellationToken);
-            if (result.Success && !string.IsNullOrWhiteSpace(result.StandardOutput))
+            if (_supportsUserInfo is not false)
             {
-                return true;
+                var userInfo = await RunAsync("admin get userinfo", cancellationToken: cancellationToken, logFailure: false);
+                if (userInfo.Success)
+                {
+                    _supportsUserInfo = true;
+                    return true;
+                }
+
+                DisableUserInfoWhenUnsupported(userInfo);
             }
 
-            // `whoami` não existe em algumas versões antigas do Hoop (incluindo
-            // a 1.51.x). Um comando autenticado bem-sucedido confirma a sessão.
-            result = await RunAsync("admin get connections", cancellationToken: cancellationToken);
+            // Last-resort compatibility for older vendor builds.
+            var result = await RunAsync("admin get connections", cancellationToken: cancellationToken);
             return result.Success;
         }
         catch (Exception ex)
@@ -93,22 +99,28 @@ public sealed class HoopService : IHoopService
 
         try
         {
-            var result = await RunAsync("whoami", cancellationToken: cancellationToken);
-            if (result.Success && !string.IsNullOrWhiteSpace(result.StandardOutput))
+            if (_supportsUserInfo is not false)
             {
-                var email = result.StandardOutput.Trim().Split('\n').FirstOrDefault();
-
-                return new UserSession
+                var userInfo = await RunAsync("admin get userinfo", cancellationToken: cancellationToken, logFailure: false);
+                if (userInfo.Success)
                 {
-                    Email = email,
-                    IsAuthenticated = true,
-                    AuthenticatedAt = DateTime.Now
-                };
+                    _supportsUserInfo = true;
+                    var email = ExtractUserEmail(userInfo.StandardOutput);
+
+                    return new UserSession
+                    {
+                        Email = email,
+                        IsAuthenticated = true,
+                        AuthenticatedAt = DateTime.Now
+                    };
+                }
+
+                DisableUserInfoWhenUnsupported(userInfo);
             }
 
-            // Compatibilidade com CLIs sem `whoami`: não será possível obter o
+            // Compatibilidade com CLIs sem `admin get userinfo`: não será possível obter o
             // e-mail, mas ainda podemos confirmar que as credenciais são válidas.
-            result = await RunAsync("admin get connections", cancellationToken: cancellationToken);
+            var result = await RunAsync("admin get connections", cancellationToken: cancellationToken);
 
             return new UserSession
             {
@@ -130,11 +142,21 @@ public sealed class HoopService : IHoopService
             throw new InvalidOperationException("Hoop não está instalado.");
         }
 
-        var result = await RunAsync("admin get connections --output json", cancellationToken: cancellationToken);
-        if (!result.Success)
+        var result = await RunAsync("admin get connections --output json", cancellationToken: cancellationToken, logFailure: false);
+        var connections = result.Success
+            ? HoopOutputParser.ParseConnections(result.StandardOutput)
+            : [];
+
+        // Older Hoop releases may accept --output without actually producing
+        // the JSON shape used by newer versions. An empty parse must therefore
+        // retry the stable text command before treating the catalog as empty.
+        if (!result.Success || connections.Count == 0)
         {
-            // Fallback para formato texto padrão.
             result = await RunAsync("admin get connections", cancellationToken: cancellationToken);
+            if (result.Success)
+            {
+                connections = HoopOutputParser.ParseConnections(result.StandardOutput);
+            }
         }
 
         if (!result.Success)
@@ -142,7 +164,7 @@ public sealed class HoopService : IHoopService
             throw new InvalidOperationException($"Falha ao listar conexões: {result.StandardError}");
         }
 
-        return HoopOutputParser.ParseConnections(result.StandardOutput);
+        return connections;
     }
 
     public async Task<ActiveTunnel> ConnectAsync(string connectionName, CancellationToken cancellationToken = default)
@@ -174,39 +196,102 @@ public sealed class HoopService : IHoopService
         var process = new Process { StartInfo = processStartInfo, EnableRaisingEvents = true };
 
         var credentialsCompletion = new TaskCompletionSource<ConnectionCredentials?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        const int maxCapturedOutputLength = 64 * 1024;
+        const int maxDiagnosticLines = 12;
         var outputBuilder = new System.Text.StringBuilder();
+        var diagnosticLines = new Queue<string>();
+        var outputLock = new object();
         var credentialsCaptured = 0;
+
+        void HandleOutput(string line, bool isStandardError)
+        {
+            ConnectionCredentials? parsed = null;
+            var sanitized = SanitizeForLog(line);
+
+            lock (outputLock)
+            {
+                // Some Hoop versions write tunnel data to stderr. Combine both
+                // streams in memory for parsing, but never log raw credentials.
+                if (outputBuilder.Length + line.Length + Environment.NewLine.Length <= maxCapturedOutputLength)
+                {
+                    outputBuilder.AppendLine(line);
+                }
+
+                if (!string.IsNullOrWhiteSpace(sanitized))
+                {
+                    diagnosticLines.Enqueue(sanitized);
+                    while (diagnosticLines.Count > maxDiagnosticLines)
+                    {
+                        diagnosticLines.Dequeue();
+                    }
+                }
+
+                if (Volatile.Read(ref credentialsCaptured) == 0)
+                {
+                    parsed = HoopOutputParser.TryParseCredentials(outputBuilder.ToString());
+                }
+            }
+
+            if (parsed is not null && Interlocked.Exchange(ref credentialsCaptured, 1) == 0)
+            {
+                credentialsCompletion.TrySetResult(parsed);
+                lock (outputLock)
+                {
+                    outputBuilder.Clear();
+                }
+            }
+
+            if (isStandardError)
+            {
+                _logger.LogWarning($"Hoop connect diagnostic: {sanitized}");
+            }
+            else
+            {
+                _logger.LogInformation($"Hoop connect output: {sanitized}");
+            }
+        }
+
+        string GetDiagnostic()
+        {
+            lock (outputLock)
+            {
+                return string.Join(" | ", diagnosticLines);
+            }
+        }
 
         process.OutputDataReceived += (_, e) =>
         {
             if (e.Data is null)
             {
-                if (Volatile.Read(ref credentialsCaptured) == 0)
-                {
-                    credentialsCompletion.TrySetResult(HoopOutputParser.TryParseCredentials(outputBuilder.ToString()));
-                }
                 return;
             }
 
-            if (Volatile.Read(ref credentialsCaptured) == 0)
-            {
-                outputBuilder.AppendLine(e.Data);
-                var parsed = HoopOutputParser.TryParseCredentials(outputBuilder.ToString());
-                if (parsed is not null && Interlocked.Exchange(ref credentialsCaptured, 1) == 0)
-                {
-                    credentialsCompletion.TrySetResult(parsed);
-                    outputBuilder.Clear();
-                }
-            }
-            _logger.LogInformation($"Hoop connect output: {SanitizeForLog(e.Data)}");
+            HandleOutput(e.Data, isStandardError: false);
         };
 
         process.ErrorDataReceived += (_, e) =>
         {
             if (!string.IsNullOrWhiteSpace(e.Data))
             {
-                _logger.LogError($"Hoop connect error: {SanitizeForLog(e.Data)}");
+                HandleOutput(e.Data, isStandardError: true);
             }
+        };
+
+        process.Exited += async (_, _) =>
+        {
+            // Allow the asynchronous output handlers to drain both streams.
+            await Task.Delay(150).ConfigureAwait(false);
+            if (Volatile.Read(ref credentialsCaptured) != 0)
+            {
+                return;
+            }
+
+            ConnectionCredentials? parsed;
+            lock (outputLock)
+            {
+                parsed = HoopOutputParser.TryParseCredentials(outputBuilder.ToString());
+            }
+            credentialsCompletion.TrySetResult(parsed);
         };
 
         using var registration = cancellationToken.Register(() =>
@@ -241,7 +326,11 @@ public sealed class HoopService : IHoopService
             try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
             process.Dispose();
             ReleaseReservedPort(localPort);
-            throw new TimeoutException("O Hoop não informou os dados do túnel em 60 segundos.");
+            var diagnostic = GetDiagnostic();
+            var details = string.IsNullOrWhiteSpace(diagnostic)
+                ? string.Empty
+                : $" Detalhes do Hoop: {diagnostic}";
+            throw new TimeoutException($"O Hoop não informou os dados do túnel em 60 segundos.{details}");
         }
 
         catch
@@ -259,11 +348,67 @@ public sealed class HoopService : IHoopService
             Process = process,
             Credentials = credentials,
             Status = credentials is not null ? ConnectionStatus.Connected : ConnectionStatus.Error,
-            ErrorMessage = credentials is null ? "Não foi possível extrair credenciais do túnel." : null,
+            ErrorMessage = credentials is null
+                ? BuildConnectionErrorMessage(GetDiagnostic())
+                : null,
             ReleaseResources = () => ReleaseReservedPort(localPort)
         };
 
         return tunnel;
+    }
+
+    public async Task<HoopDiagnostics> GetDiagnosticsAsync(CancellationToken cancellationToken = default)
+    {
+        if (!await IsInstalledAsync(cancellationToken))
+        {
+            return new HoopDiagnostics();
+        }
+
+        var versionResult = await RunAsync("version", cancellationToken: cancellationToken, logFailure: false);
+        if (!versionResult.Success)
+        {
+            versionResult = await RunAsync("--version", cancellationToken: cancellationToken, logFailure: false);
+        }
+
+        var versionText = $"{versionResult.StandardOutput} {versionResult.StandardError}";
+        var versionMatch = Regex.Match(versionText, @"(?<!\d)(?<version>\d+\.\d+\.\d+)(?!\d)");
+        var version = versionMatch.Success ? versionMatch.Groups["version"].Value : "Não identificada";
+
+        var environmentGateway = Environment.GetEnvironmentVariable("HOOP_APIURL");
+        var usesEnvironment = !string.IsNullOrWhiteSpace(environmentGateway)
+            || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("HOOP_GRPCURL"))
+            || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("HOOP_TOKEN"));
+
+        var gateway = environmentGateway;
+        if (string.IsNullOrWhiteSpace(gateway))
+        {
+            var configResult = await RunAsync("config view api_url", cancellationToken: cancellationToken, logFailure: false);
+            if (configResult.Success)
+            {
+                var url = Regex.Match(configResult.StandardOutput, "https?://[^\\s\\\"']+", RegexOptions.IgnoreCase);
+                gateway = url.Success ? url.Value : configResult.StandardOutput.Trim();
+            }
+        }
+
+        var supportsVersionManager = Version.TryParse(version, out var parsedVersion)
+            && parsedVersion >= new Version(1, 74, 0);
+
+        return new HoopDiagnostics
+        {
+            Version = version,
+            GatewayUrl = string.IsNullOrWhiteSpace(gateway) ? "Não identificado" : gateway,
+            ConfigurationSource = usesEnvironment ? "Variáveis de ambiente" : "Arquivo local do Hoop",
+            IsAuthenticated = await IsAuthenticatedAsync(cancellationToken),
+            SupportsVersionManager = supportsVersionManager
+        };
+    }
+
+    private static string BuildConnectionErrorMessage(string diagnostic)
+    {
+        const string fallback = "Não foi possível obter os dados do túnel.";
+        return string.IsNullOrWhiteSpace(diagnostic)
+            ? fallback
+            : $"{fallback} Detalhes do Hoop: {diagnostic}";
     }
 
     private int ReserveLocalPort()
@@ -345,7 +490,8 @@ public sealed class HoopService : IHoopService
 
     private async Task<CommandResult> RunAsync(
         string arguments,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool logFailure = true)
     {
         if (ExecutablePath is null)
         {
@@ -355,12 +501,43 @@ public sealed class HoopService : IHoopService
         _logger.LogInformation($"Executando: {ExecutablePath} {arguments}");
         var result = await _commandRunner.RunAsync(ExecutablePath, arguments, cancellationToken: cancellationToken);
 
-        if (!result.Success)
+        if (!result.Success && logFailure)
         {
             _logger.LogError($"Comando falhou: {result.StandardError}");
         }
 
         return result;
+    }
+
+    private void DisableUserInfoWhenUnsupported(CommandResult result)
+    {
+        var error = $"{result.StandardError} {result.StandardOutput}";
+        if (error.Contains("unknown command", StringComparison.OrdinalIgnoreCase)
+            && error.Contains("userinfo", StringComparison.OrdinalIgnoreCase))
+        {
+            _supportsUserInfo = false;
+            _logger.LogInformation("A versão instalada do Hoop não oferece 'admin get userinfo'; usando verificação compatível por catálogo.");
+        }
+    }
+
+    private static string? ExtractUserEmail(string output)
+    {
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            return null;
+        }
+
+        var jsonEmail = Regex.Match(
+            output,
+            "[\\\"](?:email|user_email)[\\\"]\\s*:\\s*[\\\"](?<email>[^\\\"]+)[\\\"]",
+            RegexOptions.IgnoreCase);
+        if (jsonEmail.Success)
+        {
+            return jsonEmail.Groups["email"].Value;
+        }
+
+        var plainEmail = Regex.Match(output, @"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", RegexOptions.IgnoreCase);
+        return plainEmail.Success ? plainEmail.Value : null;
     }
 
     private async Task<IReadOnlyList<string>> FindExecutableCandidatesAsync(CancellationToken cancellationToken)

@@ -38,6 +38,11 @@ public sealed partial class DashboardViewModel : ObservableObject
     [ObservableProperty]
     private string _catalogSyncStatus = "Preparando sincronização...";
 
+    [ObservableProperty]
+    private string? _catalogMessage;
+
+    public bool HasCatalogMessage => !string.IsNullOrWhiteSpace(CatalogMessage);
+
     public bool HasSearchText => !string.IsNullOrWhiteSpace(SearchText);
 
     [ObservableProperty]
@@ -146,6 +151,7 @@ public sealed partial class DashboardViewModel : ObservableObject
 
         try
         {
+            CatalogMessage = null;
             var session = await _hoopService.GetSessionAsync();
             UserEmail = session.Email;
             UserStatusMessage = session.IsAuthenticated ? "Logado" : "Deslogado";
@@ -173,6 +179,11 @@ public sealed partial class DashboardViewModel : ObservableObject
                 Connections.Add(viewModel);
             }
 
+            if (connections.Count == 0)
+            {
+                CatalogMessage = "O Hoop respondeu, mas não retornou conexões autorizadas. Confirme a autenticação e consulte os registros para ver a resposta do CLI.";
+            }
+
             RefreshFavoritesAndRecents();
             SynchronizeActiveConnections();
             FilteredConnections.Refresh();
@@ -185,6 +196,7 @@ public sealed partial class DashboardViewModel : ObservableObject
         {
             _logger.LogError(ex, "Falha ao carregar conexões.");
             CatalogSyncStatus = "Falha na última sincronização • nova tentativa automática";
+            CatalogMessage = $"Não foi possível carregar o catálogo. {ex.Message}";
             if (showProgress)
             {
                 UserStatusMessage = "Deslogado";
@@ -200,6 +212,8 @@ public sealed partial class DashboardViewModel : ObservableObject
             }
         }
     }
+
+    partial void OnCatalogMessageChanged(string? value) => OnPropertyChanged(nameof(HasCatalogMessage));
 
     partial void OnSearchTextChanged(string value)
     {

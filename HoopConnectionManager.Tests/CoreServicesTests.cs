@@ -29,6 +29,17 @@ public sealed class HoopParserTests
     }
 
     [TestMethod]
+    public void ParsesLegacyCatalogWithOneConnectionNamePerLine()
+    {
+        var result = HoopOutputParser.ParseConnections("orders-dev\npayments-stg\nbilling-prd");
+
+        Assert.AreEqual(3, result.Count);
+        Assert.AreEqual("DEV", result[0].EnvironmentGroup);
+        Assert.AreEqual("STG", result[1].EnvironmentGroup);
+        Assert.AreEqual("PRD", result[2].EnvironmentGroup);
+    }
+
+    [TestMethod]
     public void ParsesTemporaryCredentials()
     {
         var result = HoopOutputParser.TryParseCredentials("Host: 127.0.0.1\nPort: 5432\nUsername: hoop\nPassword: temporary");
@@ -108,6 +119,7 @@ public sealed class ConnectionServiceTests
             Credentials = new ConnectionCredentials("127.0.0.1", Interlocked.Increment(ref _nextPort), "hoop", "temporary")
         });
         public Task DisconnectAsync(string name) => Task.CompletedTask;
+        public Task<HoopDiagnostics> GetDiagnosticsAsync(CancellationToken token = default) => Task.FromResult(new HoopDiagnostics());
         public Task<IReadOnlyList<Connection>> GetConnectionsAsync(CancellationToken token = default) => Task.FromResult<IReadOnlyList<Connection>>([]);
         public Task<UserSession> GetSessionAsync(CancellationToken token = default) => Task.FromResult(new UserSession());
         public Task<bool> IsAuthenticatedAsync(CancellationToken token = default) => Task.FromResult(true);

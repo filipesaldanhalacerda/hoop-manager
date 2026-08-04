@@ -109,14 +109,27 @@ public static class HoopOutputParser
 
     private static Connection? ParseConnectionLine(string line)
     {
+        line = Regex.Replace(line, "\u001B\\[[0-?]*[ -/]*[@-~]", string.Empty).Trim();
         var parts = line.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 2)
+        if (parts.Length == 0)
         {
             return null;
         }
 
         var name = parts[0].Trim();
-        var environment = ParseEnvironment(parts[1], name);
+        if (name.Equals("NAME", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("CONNECTION", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("CONNECTIONS", StringComparison.OrdinalIgnoreCase)
+            || name.EndsWith(':')
+            || !Regex.IsMatch(name, @"[A-Za-z0-9]"))
+        {
+            return null;
+        }
+
+        // Hoop 1.51.x can return one resource name per line. Newer releases
+        // may append environment and type columns.
+        var environmentText = parts.Length > 1 ? parts[1] : null;
+        var environment = ParseEnvironment(environmentText, name);
 
         return new Connection
         {

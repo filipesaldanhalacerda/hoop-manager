@@ -7,6 +7,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    <Title>Dev Access Center</Title>
+    <Product>Dev Access Center</Product>
+    <Description>Ferramenta interna para gerenciamento de conexões de desenvolvimento.</Description>
   </PropertyGroup>
 
   <ItemGroup>

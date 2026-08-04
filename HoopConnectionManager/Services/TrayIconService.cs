@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Windows;
 using System.Windows.Forms;
 using HoopConnectionManager.Services.Abstractions;
+using HoopConnectionManager.Configuration;
 using Application = System.Windows.Application;
 
 namespace HoopConnectionManager.Services;
@@ -28,7 +29,7 @@ public sealed class TrayIconService : ITrayIconService, IDisposable
     {
         _notifyIcon = new NotifyIcon
         {
-            Text = "Hoop Connection Manager",
+            Text = ApplicationConstants.ApplicationName,
             Visible = true,
             Icon = SystemIcons.Application
         };
@@ -78,7 +79,7 @@ public sealed class TrayIconService : ITrayIconService, IDisposable
         var activeCount = _connectionService.ActiveTunnels.Count;
         if (activeCount == 0)
         {
-            ShowBalloonTip("Hoop Connection Manager", "Não há conexões ativas para desconectar.");
+            ShowBalloonTip(ApplicationConstants.ApplicationName, "Não há conexões ativas para desconectar.");
             return;
         }
 
@@ -94,7 +95,7 @@ public sealed class TrayIconService : ITrayIconService, IDisposable
             try
             {
                 await _connectionService.DisconnectAllAsync();
-                ShowBalloonTip("Hoop Connection Manager", "Todas as conexões foram encerradas.");
+                ShowBalloonTip(ApplicationConstants.ApplicationName, "Todas as conexões foram encerradas.");
             }
             catch (Exception ex)
             {
