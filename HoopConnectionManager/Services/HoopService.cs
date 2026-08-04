@@ -223,7 +223,14 @@ public sealed class HoopService : IHoopService
 
         try
         {
-            var result = await _commandRunner.RunAsync(ExecutablePath, "--version", timeout: TimeSpan.FromSeconds(5), cancellationToken: cancellationToken);
+            var result = await _commandRunner.RunAsync(ExecutablePath, "version", timeout: TimeSpan.FromSeconds(5), cancellationToken: cancellationToken);
+            if (result.Success)
+            {
+                return true;
+            }
+
+            // Mantém compatibilidade com versões/distribuições que expõem a flag padrão.
+            result = await _commandRunner.RunAsync(ExecutablePath, "--version", timeout: TimeSpan.FromSeconds(5), cancellationToken: cancellationToken);
             return result.Success;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -260,15 +267,21 @@ public sealed class HoopService : IHoopService
     private async Task<IReadOnlyList<string>> FindExecutableCandidatesAsync(CancellationToken cancellationToken)
     {
         var candidates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var pathVariable = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-        var paths = pathVariable.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        var paths = GetCurrentSearchPaths();
 
         foreach (var path in paths)
         {
-            var candidate = Path.Combine(path.Trim(), ApplicationConstants.HoopExecutableName);
-            if (File.Exists(candidate))
+            try
             {
-                candidates.Add(candidate);
+                var candidate = Path.Combine(path, ApplicationConstants.HoopExecutableName);
+                if (File.Exists(candidate))
+                {
+                    candidates.Add(candidate);
+                }
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
+            {
+                _logger.LogWarning($"Entrada inválida no PATH ignorada: {path}");
             }
         }
         AddKnownLocations(candidates);
@@ -283,6 +296,26 @@ public sealed class HoopService : IHoopService
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception ex) { _logger.LogWarning($"Não foi possível executar 'where hoop': {ex.Message}"); }
         return candidates.ToList();
+    }
+
+    private static IReadOnlyList<string> GetCurrentSearchPaths()
+    {
+        // O processo pode ter sido aberto antes da instalação do Hoop. Consulta também
+        // os valores atuais do Windows para não depender do PATH herdado na inicialização.
+        var pathValues = new[]
+        {
+            Environment.GetEnvironmentVariable("PATH"),
+            Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User),
+            Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine)
+        };
+
+        return pathValues
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .SelectMany(value => value!.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            .Select(path => Environment.ExpandEnvironmentVariables(path.Trim().Trim('"')))
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private static void AddKnownLocations(ISet<string> candidates)
