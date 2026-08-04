@@ -13,6 +13,15 @@ public sealed partial class ConnectionViewModel : ObservableObject
 
     [ObservableProperty]
     private ConnectionStatus _status = ConnectionStatus.Disconnected;
+    [ObservableProperty] private string? _host;
+    [ObservableProperty] private int? _port;
+    [ObservableProperty] private string? _username;
+    [ObservableProperty] private string? _password;
+
+    public void SetCredentials(ConnectionCredentials credentials)
+    { Host = credentials.Host; Port = credentials.Port; Username = credentials.Username; Password = credentials.Password; }
+
+    public void ClearCredentials() { Host = null; Port = null; Username = null; Password = null; }
 
     public ConnectionViewModel(Connection connection)
     {

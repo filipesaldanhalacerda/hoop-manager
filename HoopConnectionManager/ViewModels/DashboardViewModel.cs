@@ -73,6 +73,7 @@ public sealed partial class DashboardViewModel : ObservableObject
         };
 
         FilteredConnections.Filter = FilterConnection;
+        _ = LoadConnectionsAsync();
     }
 
     [RelayCommand]
@@ -127,6 +128,7 @@ public sealed partial class DashboardViewModel : ObservableObject
         {
             var tunnel = await _connectionService.ConnectAsync(connection.Name);
             connection.Status = tunnel.Status;
+            if (tunnel.Credentials is not null) connection.SetCredentials(tunnel.Credentials);
             connection.LastUsedAt = DateTime.Now;
 
             await PersistRecentConnectionAsync(connection);
@@ -166,6 +168,7 @@ public sealed partial class DashboardViewModel : ObservableObject
         }
 
         await _connectionService.DisconnectAsync(connection.Name);
+        connection.ClearCredentials();
         connection.Status = ConnectionStatus.Disconnected;
         _notificationService.Show($"Desconectado de '{connection.Name}'.");
     }
@@ -204,6 +207,22 @@ public sealed partial class DashboardViewModel : ObservableObject
 
         System.Windows.Clipboard.SetText(connection.Name);
         _notificationService.Show($"Nome '{connection.Name}' copiado.");
+    }
+
+    [RelayCommand]
+    private void CopyHost(ConnectionViewModel? connection) => CopyTemporary(connection?.Host, "Host");
+    [RelayCommand]
+    private void CopyPort(ConnectionViewModel? connection) => CopyTemporary(connection?.Port?.ToString(), "Porta");
+    [RelayCommand]
+    private void CopyUsername(ConnectionViewModel? connection) => CopyTemporary(connection?.Username, "Usuário");
+    [RelayCommand]
+    private void CopyPassword(ConnectionViewModel? connection) => CopyTemporary(connection?.Password, "Senha");
+
+    private void CopyTemporary(string? value, string label)
+    {
+        if (string.IsNullOrEmpty(value)) { _notificationService.Show("Conecte primeiro para obter os dados temporários.", NotificationLevel.Warning); return; }
+        System.Windows.Clipboard.SetText(value);
+        _notificationService.Show($"{label} copiado para a área de transferência.");
     }
 
     [RelayCommand]

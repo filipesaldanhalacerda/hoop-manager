@@ -39,6 +39,12 @@
                                        Foreground="{DynamicResource ForegroundSecondaryBrush}"
                                        FontSize="11" />
                         </StackPanel>
+                        <WrapPanel Margin="0,6,0,0">
+                            <Button Content="Host" Command="{Binding DataContext.CopyHostCommand, RelativeSource={RelativeSource AncestorType=ListView}}" CommandParameter="{Binding}" Style="{StaticResource FluentButton}" Margin="0,0,4,0" />
+                            <Button Content="Porta" Command="{Binding DataContext.CopyPortCommand, RelativeSource={RelativeSource AncestorType=ListView}}" CommandParameter="{Binding}" Style="{StaticResource FluentButton}" Margin="0,0,4,0" />
+                            <Button Content="Usuário" Command="{Binding DataContext.CopyUsernameCommand, RelativeSource={RelativeSource AncestorType=ListView}}" CommandParameter="{Binding}" Style="{StaticResource FluentButton}" Margin="0,0,4,0" />
+                            <Button Content="Senha" Command="{Binding DataContext.CopyPasswordCommand, RelativeSource={RelativeSource AncestorType=ListView}}" CommandParameter="{Binding}" Style="{StaticResource FluentButton}" />
+                        </WrapPanel>
                     </StackPanel>
 
                     <Button Grid.Column="1"

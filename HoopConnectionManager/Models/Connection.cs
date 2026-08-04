@@ -5,7 +5,7 @@ namespace HoopConnectionManager.Models;
 /// </summary>
 public sealed class Connection
 {
-    public string Id { get; init; } = Guid.NewGuid().ToString("N");
+    public string Id => Name;
     public string Name { get; init; } = string.Empty;
     public string? FriendlyName { get; init; }
     public EnvironmentType Environment { get; init; } = EnvironmentType.Unknown;
