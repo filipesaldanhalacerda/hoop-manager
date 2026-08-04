@@ -27,7 +27,7 @@ public sealed partial class WizardViewModel : ObservableObject
     private bool _isBusy;
 
     [ObservableProperty]
-    private string _statusMessage = "Verificando instalação...";
+    private string _statusMessage = "Clique em Verificar Instalação para localizar o Hoop.";
 
     [ObservableProperty]
     private int _installerProgress;
@@ -78,13 +78,36 @@ public sealed partial class WizardViewModel : ObservableObject
         IsBusy = true;
         StatusMessage = "Verificando Hoop...";
 
-        var installed = await _hoopService.IsInstalledAsync();
-        if (installed)
-        {
-            CurrentStep = 2;
-        }
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
 
-        IsBusy = false;
+        try
+        {
+            var installed = await _hoopService.IsInstalledAsync(timeout.Token);
+            if (installed)
+            {
+                StatusMessage = "Hoop encontrado. Continue para realizar o login.";
+                CurrentStep = 2;
+                return;
+            }
+
+            StatusMessage = "Hoop não encontrado. Selecione o script oficial para instalá-lo.";
+            _notificationService.Show("Hoop não encontrado neste computador.", NotificationLevel.Warning);
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        {
+            StatusMessage = "A verificação demorou demais. Tente novamente ou selecione o instalador.";
+            _notificationService.Show("A verificação do Hoop excedeu o limite de 15 segundos.", NotificationLevel.Warning);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao verificar a instalação do Hoop.");
+            StatusMessage = "Não foi possível verificar a instalação. Tente novamente.";
+            _notificationService.Show($"Erro ao verificar o Hoop: {ex.Message}", NotificationLevel.Error);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]

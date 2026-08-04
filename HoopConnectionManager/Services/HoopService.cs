@@ -226,6 +226,10 @@ public sealed class HoopService : IHoopService
             var result = await _commandRunner.RunAsync(ExecutablePath, "--version", timeout: TimeSpan.FromSeconds(5), cancellationToken: cancellationToken);
             return result.Success;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Falha ao executar hoop --version.");
@@ -276,6 +280,7 @@ public sealed class HoopService : IHoopService
                 foreach (var line in where.StandardOutput.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
                     if (File.Exists(line.Trim())) candidates.Add(line.Trim());
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception ex) { _logger.LogWarning($"Não foi possível executar 'where hoop': {ex.Message}"); }
         return candidates.ToList();
     }
