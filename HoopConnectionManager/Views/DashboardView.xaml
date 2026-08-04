@@ -1,0 +1,187 @@
+<UserControl x:Class="HoopConnectionManager.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="600"
+             d:DesignWidth="1000">
+    <UserControl.Resources>
+        <DataTemplate x:Key="ConnectionItemTemplate">
+            <Border Background="{DynamicResource SurfaceSecondaryBrush}"
+                    CornerRadius="8"
+                    Padding="16"
+                    Margin="0,4,0,4">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{Binding DisplayName}"
+                                   Foreground="{DynamicResource ForegroundBrush}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Name}"
+                                   Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                   FontSize="12" />
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="{Binding EnvironmentGroup}"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,8,0" />
+                            <TextBlock Text="{Binding Status}"
+                                       Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                       FontSize="11" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Button Grid.Column="1"
+                            Content="Conectar"
+                            Command="{Binding DataContext.ConnectCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                            CommandParameter="{Binding}"
+                            Style="{StaticResource FluentButton}"
+                            Margin="4,0" />
+
+                    <Button Grid.Column="2"
+                            Content="Desconectar"
+                            Command="{Binding DataContext.DisconnectCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                            CommandParameter="{Binding}"
+                            Style="{StaticResource FluentButton}"
+                            Margin="4,0" />
+
+                    <Button Grid.Column="3"
+                            Content="Favoritar"
+                            Command="{Binding DataContext.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                            CommandParameter="{Binding}"
+                            Style="{StaticResource FluentButton}"
+                            Margin="4,0" />
+
+                    <Button Grid.Column="4"
+                            Content="Copiar"
+                            Command="{Binding DataContext.CopyNameCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                            CommandParameter="{Binding}"
+                            Style="{StaticResource FluentButton}"
+                            Margin="4,0" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <Style x:Key="GroupHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+            <Setter Property="Margin" Value="0,16,0,8" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Topo -->
+        <Grid Grid.Row="0" Margin="0,0,0,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Dashboard"
+                           FontSize="28"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ForegroundBrush}" />
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Text="{Binding UserStatusMessage}"
+                               FontSize="12"
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                               Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding UserEmail}"
+                               FontSize="12"
+                               Foreground="{DynamicResource AccentBrush}"
+                               FontStyle="Italic" />
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Content="Carregar Conexões"
+                        Command="{Binding LoadConnectionsCommand}"
+                        Style="{StaticResource FluentButton}"
+                        Margin="0,0,8,0" />
+                <Button Content="Atualizar Status"
+                        Command="{Binding RefreshUserStatusCommand}"
+                        Style="{StaticResource FluentButton}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Pesquisa -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,16">
+            <TextBlock Text="Pesquisar conexões"
+                       Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                       FontSize="12"
+                       Margin="0,0,0,4" />
+            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource FluentTextBox}"
+                     Padding="12,8"
+                     Foreground="{DynamicResource ForegroundBrush}"
+                     Background="{DynamicResource SurfaceSecondaryBrush}"
+                     BorderBrush="{DynamicResource BorderBrush}" />
+        </StackPanel>
+
+        <!-- Conteúdo rolável -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- Favoritos -->
+                <TextBlock Text="Favoritos"
+                           Style="{StaticResource GroupHeaderStyle}"
+                           Visibility="{Binding FavoriteConnections.Count, Converter={StaticResource CountToInvertedVisibilityConverter}}" />
+                <ListView ItemsSource="{Binding FavoriteConnections}"
+                          ItemTemplate="{StaticResource ConnectionItemTemplate}"
+                          Style="{StaticResource FluentListView}"
+                          ItemContainerStyle="{StaticResource FluentListViewItem}"
+                          BorderThickness="0"
+                          Background="Transparent" />
+
+                <!-- Recentes -->
+                <TextBlock Text="Recentes"
+                           Style="{StaticResource GroupHeaderStyle}"
+                           Visibility="{Binding RecentConnections.Count, Converter={StaticResource CountToInvertedVisibilityConverter}}" />
+                <ListView ItemsSource="{Binding RecentConnections}"
+                          ItemTemplate="{StaticResource ConnectionItemTemplate}"
+                          Style="{StaticResource FluentListView}"
+                          ItemContainerStyle="{StaticResource FluentListViewItem}"
+                          BorderThickness="0"
+                          Background="Transparent" />
+
+                <!-- Todas por ambiente -->
+                <TextBlock Text="Conexões"
+                           Style="{StaticResource GroupHeaderStyle}" />
+                <ListView ItemsSource="{Binding FilteredConnections}"
+                          ItemTemplate="{StaticResource ConnectionItemTemplate}"
+                          Style="{StaticResource FluentListView}"
+                          ItemContainerStyle="{StaticResource FluentListViewItem}"
+                          BorderThickness="0"
+                          Background="Transparent">
+                    <ListView.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}"
+                                               Style="{StaticResource GroupHeaderStyle}" />
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListView.GroupStyle>
+                </ListView>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

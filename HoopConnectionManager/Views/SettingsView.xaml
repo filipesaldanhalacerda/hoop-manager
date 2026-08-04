@@ -1,0 +1,119 @@
+<UserControl x:Class="HoopConnectionManager.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="600"
+             d:DesignWidth="1000">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="Configurações"
+                   FontSize="28"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource ForegroundBrush}"
+                   Margin="0,0,0,24" />
+
+        <Border Grid.Row="1"
+                Background="{DynamicResource SurfaceBrush}"
+                CornerRadius="8"
+                Padding="32">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="Caminhos"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               Margin="0,0,0,16" />
+
+                    <TextBlock Text="hoop.exe"
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                               FontSize="12"
+                               Margin="0,0,0,4" />
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding HoopExecutablePath}"
+                                 Style="{StaticResource FluentTextBox}" />
+                        <Button Grid.Column="1"
+                                Content="Procurar"
+                                Command="{Binding BrowseHoopExecutableCommand}"
+                                Style="{StaticResource FluentButton}"
+                                Margin="8,0,0,0" />
+                    </Grid>
+
+                    <TextBlock Text="DBeaver"
+                               Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                               FontSize="12"
+                               Margin="0,0,0,4" />
+                    <Grid Margin="0,0,0,24">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding DbeaverExecutablePath}"
+                                 Style="{StaticResource FluentTextBox}" />
+                        <Button Grid.Column="1"
+                                Content="Procurar"
+                                Command="{Binding BrowseDBeaverExecutableCommand}"
+                                Style="{StaticResource FluentButton}"
+                                Margin="8,0,0,0" />
+                    </Grid>
+
+                    <TextBlock Text="Comportamento"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               Margin="0,0,0,16" />
+
+                    <CheckBox Content="Abrir com o Windows"
+                              IsChecked="{Binding StartWithWindows}"
+                              Foreground="{DynamicResource ForegroundBrush}"
+                              Margin="0,8" />
+
+                    <CheckBox Content="Minimizar para bandeja"
+                              IsChecked="{Binding MinimizeToTray}"
+                              Foreground="{DynamicResource ForegroundBrush}"
+                              Margin="0,8" />
+
+                    <CheckBox Content="Abrir DBeaver automaticamente"
+                              IsChecked="{Binding OpenDBeaverAutomatically}"
+                              Foreground="{DynamicResource ForegroundBrush}"
+                              Margin="0,8" />
+
+                    <CheckBox Content="Atualizar conexões ao iniciar"
+                              IsChecked="{Binding RefreshConnectionsOnStartup}"
+                              Foreground="{DynamicResource ForegroundBrush}"
+                              Margin="0,8,0,24" />
+
+                    <TextBlock Text="Aparência"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource ForegroundBrush}"
+                               Margin="0,0,0,16" />
+
+                    <ComboBox ItemsSource="{Binding Themes}"
+                              SelectedItem="{Binding SelectedTheme}"
+                              Foreground="{DynamicResource ForegroundBrush}"
+                              Background="{DynamicResource SurfaceSecondaryBrush}"
+                              BorderBrush="{DynamicResource BorderBrush}"
+                              Margin="0,0,0,24" />
+
+                    <Button Content="Salvar Configurações"
+                            Command="{Binding SaveCommand}"
+                            Style="{StaticResource FluentButton}"
+                            HorizontalAlignment="Left" />
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>
