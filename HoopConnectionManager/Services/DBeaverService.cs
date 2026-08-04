@@ -70,6 +70,17 @@ public sealed class DBeaverService : IDBeaverService
             var running = IsDBeaverRunning();
             var exists = IsKnownConnection(info.ConnectionName) || ConnectionExistsInWorkspace(info.ConnectionName);
 
+            // Algumas instalações MSIX não encaminham os argumentos para a janela
+            // existente e abrem uma nova interface a cada execução. Quando já há
+            // uma janela ativa, não iniciamos nenhum executável do DBeaver.
+            if (running)
+            {
+                TryActivateRunningInstance();
+                _logger.LogInformation(
+                    $"DBeaver já está aberto. A instância existente foi ativada para '{info.ConnectionName}' sem criar outra janela.");
+                return;
+            }
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = GetCommandLineExecutable(path),
@@ -84,10 +95,7 @@ public sealed class DBeaverService : IDBeaverService
             _ = Process.Start(startInfo) ?? throw new InvalidOperationException("O Windows não conseguiu iniciar o DBeaver.");
             RememberConnection(info.ConnectionName);
 
-            if (!running)
-            {
-                await WaitForDBeaverStartupAsync(cancellationToken);
-            }
+            await WaitForDBeaverStartupAsync(cancellationToken);
             TryActivateRunningInstance();
 
             _logger.LogInformation(exists

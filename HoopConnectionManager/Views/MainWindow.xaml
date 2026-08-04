@@ -52,22 +52,22 @@
                     <TextBlock Text="OPERAÇÃO" Foreground="{DynamicResource NavigationMutedBrush}"
                                FontSize="10" FontWeight="SemiBold" Margin="14,0,0,8" />
                     <Button Command="{Binding NavigateToDashboardCommand}" Style="{StaticResource SidebarButton}">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Grid HorizontalAlignment="Stretch"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <TextBlock Text="&#xE8B7;" Style="{StaticResource SidebarIcon}" />
                             <TextBlock Grid.Column="1" Text="Resources" Style="{StaticResource SidebarLabel}" /></Grid>
                     </Button>
                     <Button Command="{Binding NavigateToSessionHistoryCommand}" Style="{StaticResource SidebarButton}">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Grid HorizontalAlignment="Stretch"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <TextBlock Text="&#xE81C;" Style="{StaticResource SidebarIcon}" />
                             <TextBlock Grid.Column="1" Text="Sessions" Style="{StaticResource SidebarLabel}" /></Grid>
                     </Button>
                     <Button Command="{Binding NavigateToLogsCommand}" Style="{StaticResource SidebarButton}">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Grid HorizontalAlignment="Stretch"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <TextBlock Text="&#xE9D9;" Style="{StaticResource SidebarIcon}" />
                             <TextBlock Grid.Column="1" Text="Logs" Style="{StaticResource SidebarLabel}" /></Grid>
                     </Button>
                     <Button Command="{Binding NavigateToSettingsCommand}" Style="{StaticResource SidebarButton}">
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Grid HorizontalAlignment="Stretch"><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <TextBlock Text="&#xE713;" Style="{StaticResource SidebarIcon}" />
                             <TextBlock Grid.Column="1" Text="Settings" Style="{StaticResource SidebarLabel}" /></Grid>
                     </Button>
