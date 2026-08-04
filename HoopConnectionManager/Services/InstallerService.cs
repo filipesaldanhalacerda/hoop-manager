@@ -30,15 +30,27 @@ public sealed class InstallerService : IInstallerService
         _logger.LogInformation($"Iniciando instalação via script: {scriptPath}");
         ReportProgress(0, "Iniciando instalação...");
 
+        var extension = Path.GetExtension(scriptPath).ToLowerInvariant();
+        if (extension is not (".ps1" or ".cmd" or ".bat"))
+            throw new NotSupportedException("Selecione um instalador oficial .ps1, .cmd ou .bat.");
+
         var processStartInfo = new ProcessStartInfo
         {
-            FileName = "powershell.exe",
-            Arguments = $"-ExecutionPolicy Bypass -File \"{scriptPath}\"",
+            FileName = extension == ".ps1" ? "powershell.exe" : Environment.GetEnvironmentVariable("COMSPEC") ?? "cmd.exe",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
+        if (extension == ".ps1")
+        {
+            processStartInfo.ArgumentList.Add("-NoProfile"); processStartInfo.ArgumentList.Add("-ExecutionPolicy");
+            processStartInfo.ArgumentList.Add("Bypass"); processStartInfo.ArgumentList.Add("-File"); processStartInfo.ArgumentList.Add(scriptPath);
+        }
+        else
+        {
+            processStartInfo.ArgumentList.Add("/d"); processStartInfo.ArgumentList.Add("/c"); processStartInfo.ArgumentList.Add(scriptPath);
+        }
 
         using var process = new Process { StartInfo = processStartInfo, EnableRaisingEvents = true };
         var tcs = new TaskCompletionSource<object?>();
@@ -58,6 +70,7 @@ public sealed class InstallerService : IInstallerService
             if (!string.IsNullOrWhiteSpace(e.Data))
             {
                 _logger.LogError($"Installer error: {e.Data}");
+                ReportProgress(50, $"ERRO: {e.Data}");
             }
         };
 
@@ -65,7 +78,13 @@ public sealed class InstallerService : IInstallerService
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
+        using var registration = cancellationToken.Register(() =>
+        {
+            try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
+            tcs.TrySetCanceled(cancellationToken);
+        });
         await tcs.Task;
+        if (process.ExitCode != 0) throw new InvalidOperationException($"O instalador terminou com o código {process.ExitCode}.");
 
         ReportProgress(100, "Instalação concluída.");
         return await IsInstalledAsync(cancellationToken);

@@ -66,9 +66,10 @@
                         <TextBlock Text="Ou selecione o script oficial para instalar:"
                                    Foreground="{DynamicResource ForegroundSecondaryBrush}"
                                    Margin="0,16,0,8" />
-                        <TextBox Text="{Binding InstallerScriptPath}"
-                                 Style="{StaticResource FluentTextBox}"
-                                 Margin="0,0,0,8" />
+                        <DockPanel Margin="0,0,0,8">
+                            <Button Content="Selecionar..." Command="{Binding BrowseInstallerCommand}" Style="{StaticResource FluentButton}" DockPanel.Dock="Right" Margin="8,0,0,0" />
+                            <TextBox Text="{Binding InstallerScriptPath}" IsReadOnly="True" Style="{StaticResource FluentTextBox}" />
+                        </DockPanel>
                         <Button Content="Instalar Hoop"
                                 Command="{Binding InstallHoopCommand}"
                                 Style="{StaticResource FluentButton}" />

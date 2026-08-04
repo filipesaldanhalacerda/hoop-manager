@@ -2,6 +2,7 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HoopConnectionManager.Services.Abstractions;
+using Microsoft.Win32;
 
 namespace HoopConnectionManager.ViewModels;
 
@@ -84,6 +85,13 @@ public sealed partial class WizardViewModel : ObservableObject
         }
 
         IsBusy = false;
+    }
+
+    [RelayCommand]
+    private void BrowseInstaller()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Selecione o instalador oficial do Hoop", Filter = "Scripts (*.ps1;*.cmd;*.bat)|*.ps1;*.cmd;*.bat" };
+        if (dialog.ShowDialog() == true) InstallerScriptPath = dialog.FileName;
     }
 
     [RelayCommand]

@@ -151,7 +151,7 @@ public static class HoopOutputParser
         }
     }
 
-    private static ConnectionCredentials? TryParseCredentials(string output)
+    public static ConnectionCredentials? TryParseCredentials(string output)
     {
         if (string.IsNullOrWhiteSpace(output))
         {

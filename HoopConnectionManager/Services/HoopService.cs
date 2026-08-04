@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using HoopConnectionManager.Configuration;
 using HoopConnectionManager.Models;
 using HoopConnectionManager.Services.Abstractions;
+using Microsoft.Win32;
 
 namespace HoopConnectionManager.Services;
 
@@ -38,12 +39,15 @@ public sealed class HoopService : IHoopService
             }
         }
 
-        ExecutablePath = FindExecutableInPath();
-        if (ExecutablePath is not null && await CanExecuteAsync(cancellationToken))
+        foreach (var candidate in await FindExecutableCandidatesAsync(cancellationToken))
         {
-            settings.HoopExecutablePath = ExecutablePath;
-            await _settingsService.SaveAsync(settings, cancellationToken);
-            return true;
+            ExecutablePath = candidate;
+            if (await CanExecuteAsync(cancellationToken))
+            {
+                settings.HoopExecutablePath = ExecutablePath;
+                await _settingsService.SaveAsync(settings, cancellationToken);
+                return true;
+            }
         }
 
         ExecutablePath = null;
@@ -131,28 +135,31 @@ public sealed class HoopService : IHoopService
         var processStartInfo = new ProcessStartInfo
         {
             FileName = ExecutablePath!,
-            Arguments = $"connect {connectionName}",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
             WindowStyle = ProcessWindowStyle.Hidden
         };
+        processStartInfo.ArgumentList.Add("connect");
+        processStartInfo.ArgumentList.Add(connectionName);
 
         var process = new Process { StartInfo = processStartInfo, EnableRaisingEvents = true };
 
-        var outputTaskCompletion = new TaskCompletionSource<string>();
+        var credentialsCompletion = new TaskCompletionSource<ConnectionCredentials?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var outputBuilder = new System.Text.StringBuilder();
 
         process.OutputDataReceived += (_, e) =>
         {
             if (e.Data is null)
             {
-                outputTaskCompletion.TrySetResult(outputBuilder.ToString());
+                credentialsCompletion.TrySetResult(HoopOutputParser.TryParseCredentials(outputBuilder.ToString()));
                 return;
             }
 
             outputBuilder.AppendLine(e.Data);
+            var parsed = HoopOutputParser.TryParseCredentials(outputBuilder.ToString());
+            if (parsed is not null) credentialsCompletion.TrySetResult(parsed);
             _logger.LogInformation($"Hoop connect output: {SanitizeForLog(e.Data)}");
         };
 
@@ -180,10 +187,14 @@ public sealed class HoopService : IHoopService
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
-        var credentials = await HoopOutputParser.WaitForCredentialsAsync(
-            outputTaskCompletion.Task,
-            TimeSpan.FromSeconds(60),
-            cancellationToken);
+        ConnectionCredentials? credentials;
+        try { credentials = await credentialsCompletion.Task.WaitAsync(TimeSpan.FromSeconds(60), cancellationToken); }
+        catch (TimeoutException)
+        {
+            try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
+            process.Dispose();
+            throw new TimeoutException("O Hoop não informou os dados do túnel em 60 segundos.");
+        }
 
         var tunnel = new ActiveTunnel
         {
@@ -242,8 +253,9 @@ public sealed class HoopService : IHoopService
         return result;
     }
 
-    private static string? FindExecutableInPath()
+    private async Task<IReadOnlyList<string>> FindExecutableCandidatesAsync(CancellationToken cancellationToken)
     {
+        var candidates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var pathVariable = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
         var paths = pathVariable.Split(';', StringSplitOptions.RemoveEmptyEntries);
 
@@ -252,11 +264,45 @@ public sealed class HoopService : IHoopService
             var candidate = Path.Combine(path.Trim(), ApplicationConstants.HoopExecutableName);
             if (File.Exists(candidate))
             {
-                return candidate;
+                candidates.Add(candidate);
             }
         }
+        AddKnownLocations(candidates);
+        AddRegistryLocations(candidates);
+        try
+        {
+            var where = await _commandRunner.RunAsync("where.exe", "hoop", cancellationToken: cancellationToken, timeout: TimeSpan.FromSeconds(5));
+            if (where.Success)
+                foreach (var line in where.StandardOutput.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+                    if (File.Exists(line.Trim())) candidates.Add(line.Trim());
+        }
+        catch (Exception ex) { _logger.LogWarning($"Não foi possível executar 'where hoop': {ex.Message}"); }
+        return candidates.ToList();
+    }
 
-        return null;
+    private static void AddKnownLocations(ISet<string> candidates)
+    {
+        var roots = new[] { Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) };
+        var relativePaths = new[] { "hoop.exe", Path.Combine("Hoop", "hoop.exe"), Path.Combine(".hoop", "hoop.exe"), Path.Combine("bin", "hoop.exe") };
+        foreach (var root in roots.Where(x => !string.IsNullOrWhiteSpace(x)))
+            foreach (var relative in relativePaths)
+            { var path = Path.Combine(root, relative); if (File.Exists(path)) candidates.Add(path); }
+    }
+
+    private static void AddRegistryLocations(ISet<string> candidates)
+    {
+        var keys = new[] { @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\hoop.exe", @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\hoop.exe", @"SOFTWARE\Hoop" };
+        foreach (var hive in new[] { Registry.CurrentUser, Registry.LocalMachine })
+            foreach (var name in keys)
+                try
+                {
+                    using var key = hive.OpenSubKey(name);
+                    var raw = key?.GetValue(null) as string ?? key?.GetValue("InstallLocation") as string;
+                    if (string.IsNullOrWhiteSpace(raw)) continue;
+                    var path = Directory.Exists(raw) ? Path.Combine(raw, "hoop.exe") : raw;
+                    if (File.Exists(path)) candidates.Add(path);
+                }
+                catch (Exception) { }
     }
 
     private static string SanitizeForLog(string input)
