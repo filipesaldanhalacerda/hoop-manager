@@ -40,16 +40,15 @@ public partial class App : System.Windows.Application
             navigationService.NavigateTo<DashboardViewModel>();
         }
 
-        var mainWindow = new MainWindow
-        {
-            DataContext = Services.GetRequiredService<MainWindowViewModel>()
-        };
+        var mainWindow = Services.GetRequiredService<MainWindow>();
+        mainWindow.DataContext = Services.GetRequiredService<MainWindowViewModel>();
 
         mainWindow.Show();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
+        Services.GetService<IConnectionService>()?.DisconnectAllAsync().GetAwaiter().GetResult();
         var trayIcon = Services.GetService<ITrayIconService>();
         (trayIcon as IDisposable)?.Dispose();
 
@@ -60,10 +59,6 @@ public partial class App : System.Windows.Application
     {
         services.AddApplicationServices();
 
-        services.AddTransient<MainWindowViewModel>();
-        services.AddTransient<DashboardViewModel>();
-        services.AddTransient<WizardViewModel>();
-        services.AddTransient<SettingsViewModel>();
     }
 
     private static void ApplyTheme()

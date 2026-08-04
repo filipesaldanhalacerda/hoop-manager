@@ -1,5 +1,7 @@
 using HoopConnectionManager.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
+using HoopConnectionManager.ViewModels;
+using HoopConnectionManager.Views;
 
 namespace HoopConnectionManager.Services;
 
@@ -23,6 +25,11 @@ public static class ServiceRegistration
         services.AddSingleton<IStartupService, StartupService>();
         services.AddSingleton<ITrayIconService, TrayIconService>();
         services.AddSingleton<INavigationService>(provider => new NavigationService(provider));
+        services.AddSingleton<MainWindow>();
+        services.AddSingleton<MainWindowViewModel>();
+        services.AddSingleton<DashboardViewModel>();
+        services.AddSingleton<WizardViewModel>();
+        services.AddSingleton<SettingsViewModel>();
 
         return services;
     }

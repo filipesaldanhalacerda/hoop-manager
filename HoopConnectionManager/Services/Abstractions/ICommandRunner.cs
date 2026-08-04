@@ -25,5 +25,6 @@ public interface ICommandRunner
         string arguments,
         string? workingDirectory = null,
         CancellationToken cancellationToken = default,
-        TimeSpan? timeout = null);
+        TimeSpan? timeout = null,
+        IProgress<string>? outputProgress = null);
 }

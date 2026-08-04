@@ -15,10 +15,10 @@ public sealed class SettingsService : ISettingsService
     private readonly string _settingsPath;
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public SettingsService()
+    public SettingsService(string? baseDirectory = null)
     {
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        _settingsDirectory = Path.Combine(localAppData, ApplicationConstants.ApplicationName, ApplicationConstants.DataDirectoryName);
+        _settingsDirectory = baseDirectory ?? Path.Combine(localAppData, ApplicationConstants.ApplicationName, ApplicationConstants.DataDirectoryName);
         _settingsPath = Path.Combine(_settingsDirectory, ApplicationConstants.SettingsFileName);
 
         _jsonOptions = new JsonSerializerOptions
@@ -40,8 +40,15 @@ public sealed class SettingsService : ISettingsService
             return new ApplicationSettings();
         }
 
-        var json = File.ReadAllText(_settingsPath);
-        return JsonSerializer.Deserialize<ApplicationSettings>(json, _jsonOptions) ?? new ApplicationSettings();
+        try
+        {
+            var json = File.ReadAllText(_settingsPath);
+            var settings = JsonSerializer.Deserialize<ApplicationSettings>(json, _jsonOptions) ?? new ApplicationSettings();
+            settings.FavoriteConnectionIds ??= [];
+            settings.RecentConnectionIds ??= [];
+            return settings;
+        }
+        catch (JsonException) { return new ApplicationSettings(); }
     }
 
     public async Task SaveAsync(ApplicationSettings settings, CancellationToken cancellationToken = default)
@@ -49,6 +56,8 @@ public sealed class SettingsService : ISettingsService
         Directory.CreateDirectory(_settingsDirectory);
 
         var json = JsonSerializer.Serialize(settings, _jsonOptions);
-        await File.WriteAllTextAsync(_settingsPath, json, cancellationToken);
+        var temporaryPath = _settingsPath + ".tmp";
+        await File.WriteAllTextAsync(temporaryPath, json, cancellationToken);
+        File.Move(temporaryPath, _settingsPath, true);
     }
 }
