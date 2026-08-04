@@ -26,14 +26,19 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0" Margin="6,0,5,32">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="43" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                    <Border Width="34" Height="34" HorizontalAlignment="Left" CornerRadius="8"
-                            BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
-                            Background="{DynamicResource AccentSoftBrush}">
-                        <TextBlock Text="DA" Foreground="{DynamicResource NavigationForegroundBrush}"
-                                   FontFamily="{DynamicResource MonoFontFamily}" FontSize="13" FontWeight="Bold"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <Grid Grid.Row="0" Margin="4,0,4,32">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="47" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Border Width="38" Height="38" HorizontalAlignment="Left" CornerRadius="10"
+                            BorderBrush="{DynamicResource AccentHoverBrush}" BorderThickness="1"
+                            Background="{DynamicResource AccentBrush}">
+                        <Grid Width="19" Height="19" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <Border Width="7" Height="7" CornerRadius="2" Background="{DynamicResource AccentForegroundBrush}" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                            <Border Grid.Column="1" Width="7" Height="7" CornerRadius="2" Background="{DynamicResource AccentForegroundBrush}" HorizontalAlignment="Right" VerticalAlignment="Top" Opacity="0.72" />
+                            <Border Grid.Row="1" Width="7" Height="7" CornerRadius="2" Background="{DynamicResource AccentForegroundBrush}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Opacity="0.72" />
+                            <Border Grid.Row="1" Grid.Column="1" Width="7" Height="7" CornerRadius="2" Background="{DynamicResource AccentForegroundBrush}" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+                        </Grid>
                     </Border>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="DEV ACCESS" Foreground="{DynamicResource NavigationForegroundBrush}"
@@ -47,20 +52,24 @@
                     <TextBlock Text="OPERAÇÃO" Foreground="{DynamicResource NavigationMutedBrush}"
                                FontSize="10" FontWeight="SemiBold" Margin="14,0,0,8" />
                     <Button Command="{Binding NavigateToDashboardCommand}" Style="{StaticResource SidebarButton}">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7B8;" FontFamily="Segoe Fluent Icons" FontSize="17" Width="32" />
-                            <TextBlock Text="Resources" VerticalAlignment="Center" /></StackPanel>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xE8B7;" Style="{StaticResource SidebarIcon}" />
+                            <TextBlock Grid.Column="1" Text="Resources" Style="{StaticResource SidebarLabel}" /></Grid>
                     </Button>
                     <Button Command="{Binding NavigateToSessionHistoryCommand}" Style="{StaticResource SidebarButton}">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE9D9;" FontFamily="Segoe Fluent Icons" FontSize="17" Width="32" />
-                            <TextBlock Text="Sessions" VerticalAlignment="Center" /></StackPanel>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xE81C;" Style="{StaticResource SidebarIcon}" />
+                            <TextBlock Grid.Column="1" Text="Sessions" Style="{StaticResource SidebarLabel}" /></Grid>
                     </Button>
                     <Button Command="{Binding NavigateToLogsCommand}" Style="{StaticResource SidebarButton}">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE9F9;" FontFamily="Segoe Fluent Icons" FontSize="17" Width="32" />
-                            <TextBlock Text="Logs" VerticalAlignment="Center" /></StackPanel>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xE9D9;" Style="{StaticResource SidebarIcon}" />
+                            <TextBlock Grid.Column="1" Text="Logs" Style="{StaticResource SidebarLabel}" /></Grid>
                     </Button>
                     <Button Command="{Binding NavigateToSettingsCommand}" Style="{StaticResource SidebarButton}">
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="17" Width="32" />
-                            <TextBlock Text="Settings" VerticalAlignment="Center" /></StackPanel>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xE713;" Style="{StaticResource SidebarIcon}" />
+                            <TextBlock Grid.Column="1" Text="Settings" Style="{StaticResource SidebarLabel}" /></Grid>
                     </Button>
                 </StackPanel>
 

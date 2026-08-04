@@ -16,6 +16,7 @@ public sealed class DBeaverService : IDBeaverService
     private readonly ILoggerService _logger;
     private readonly HashSet<string> _knownConnectionNames = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _connectionNamesLock = new();
+    private readonly SemaphoreSlim _launchLock = new(1, 1);
 
     public DBeaverService(ISettingsService settingsService, ILoggerService logger)
     {
@@ -60,37 +61,52 @@ public sealed class DBeaverService : IDBeaverService
 
     private async Task OpenOrUpdateConnectionAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken)
     {
-        ValidateConnectionInfo(info);
-        var path = await LocateAsync(cancellationToken)
-            ?? throw new InvalidOperationException("DBeaver não encontrado. Configure o caminho manualmente.");
-        var running = IsDBeaverRunning();
-        var exists = IsKnownConnection(info.ConnectionName) || ConnectionExistsInWorkspace(info.ConnectionName);
-
-        var startInfo = new ProcessStartInfo
+        await _launchLock.WaitAsync(cancellationToken);
+        try
         {
-            FileName = GetCommandLineExecutable(path),
-            UseShellExecute = true
-        };
-        startInfo.ArgumentList.Add("-reuseWorkspace");
-        startInfo.ArgumentList.Add("-con");
-        startInfo.ArgumentList.Add(BuildConnectionArgument(info, exists));
+            ValidateConnectionInfo(info);
+            var path = await LocateAsync(cancellationToken)
+                ?? throw new InvalidOperationException("DBeaver não encontrado. Configure o caminho manualmente.");
+            var running = IsDBeaverRunning();
+            var exists = IsKnownConnection(info.ConnectionName) || ConnectionExistsInWorkspace(info.ConnectionName);
 
-        cancellationToken.ThrowIfCancellationRequested();
-        _ = Process.Start(startInfo) ?? throw new InvalidOperationException("O Windows não conseguiu iniciar o DBeaver.");
-        RememberConnection(info.ConnectionName);
-
-        if (running)
-        {
-            _ = Task.Run(async () =>
+            var startInfo = new ProcessStartInfo
             {
-                await Task.Delay(500);
-                TryActivateRunningInstance();
-            });
-        }
+                FileName = GetCommandLineExecutable(path),
+                UseShellExecute = true
+            };
+            // Sem -reuseWorkspace: o comportamento padrão do DBeaver encaminha o
+            // comando para a instância existente. Essa opção forçava novas instâncias.
+            startInfo.ArgumentList.Add("-con");
+            startInfo.ArgumentList.Add(BuildConnectionArgument(info, exists));
 
-        _logger.LogInformation(exists
-            ? $"Conexão existente '{info.ConnectionName}' reutilizada no DBeaver com endpoint temporário atualizado."
-            : $"Conexão '{info.ConnectionName}' criada uma única vez no DBeaver; a senha temporária não será salva.");
+            cancellationToken.ThrowIfCancellationRequested();
+            _ = Process.Start(startInfo) ?? throw new InvalidOperationException("O Windows não conseguiu iniciar o DBeaver.");
+            RememberConnection(info.ConnectionName);
+
+            if (!running)
+            {
+                await WaitForDBeaverStartupAsync(cancellationToken);
+            }
+            TryActivateRunningInstance();
+
+            _logger.LogInformation(exists
+                ? $"Conexão existente '{info.ConnectionName}' encaminhada à instância atual do DBeaver com endpoint atualizado."
+                : $"Conexão '{info.ConnectionName}' criada no DBeaver sem abrir uma instância adicional; a senha temporária não será salva.");
+        }
+        finally
+        {
+            _launchLock.Release();
+        }
+    }
+
+    private static async Task WaitForDBeaverStartupAsync(CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt < 80; attempt++)
+        {
+            if (IsDBeaverRunning()) return;
+            await Task.Delay(100, cancellationToken);
+        }
     }
 
     private static string BuildConnectionArgument(DBeaverConnectionInfo info, bool exists)

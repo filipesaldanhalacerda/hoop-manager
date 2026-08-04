@@ -97,8 +97,28 @@
 
     <Style x:Key="SidebarButton" TargetType="Button" BasedOn="{StaticResource NavigationButton}">
         <Setter Property="Foreground" Value="{DynamicResource NavigationForegroundBrush}" />
-        <Setter Property="Padding" Value="14,11" />
+        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="MinHeight" Value="48" />
         <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style x:Key="SidebarIcon" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe Fluent Icons" />
+        <Setter Property="FontSize" Value="17" />
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="TextAlignment" Value="Center" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="LineHeight" Value="32" />
+        <Setter Property="Foreground" Value="{DynamicResource NavigationMutedBrush}" />
+    </Style>
+
+    <Style x:Key="SidebarLabel" TargetType="TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="8,0,0,0" />
+        <Setter Property="Foreground" Value="{DynamicResource NavigationForegroundBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
     <Style x:Key="FluentTextBox" TargetType="TextBox">
