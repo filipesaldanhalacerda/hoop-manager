@@ -61,7 +61,7 @@
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Ellipse Width="7" Height="7" Fill="{DynamicResource SuccessBrush}" Margin="0,0,8,0" />
-                            <TextBlock Text="SISTEMA OPERACIONAL" Foreground="{DynamicResource SuccessBrush}" FontSize="9" FontWeight="Bold" />
+                            <TextBlock Text="APLICATIVO ATIVO" Foreground="{DynamicResource SuccessBrush}" FontSize="9" FontWeight="Bold" />
                         </StackPanel>
                         <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource NavigationMutedBrush}"
                                    FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" />
@@ -76,12 +76,46 @@
                 <Grid Margin="32,0">
                     <TextBlock Text="Hoop Connection Manager" Foreground="{DynamicResource ForegroundSecondaryBrush}" VerticalAlignment="Center" FontSize="12" />
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <Ellipse Width="7" Height="7" Fill="{DynamicResource SuccessBrush}" Margin="0,0,8,0" />
-                        <TextBlock Text="Hoop CLI online" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" />
+                        <TextBlock Text="&#xE72E;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="13" Margin="0,0,8,0" />
+                        <TextBlock Text="Integração local segura" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" />
                     </StackPanel>
                 </Grid>
             </Border>
             <ContentControl Grid.Row="1" Content="{Binding CurrentViewModel}" Margin="36,30,36,32" />
         </Grid>
+
+        <Border Grid.Column="1" Panel.ZIndex="20" Width="430" MinHeight="64" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                Margin="0,0,24,24" Padding="14,11" Background="{DynamicResource ElevatedBrush}" BorderThickness="4,1,1,1"
+                CornerRadius="8" Visibility="{Binding IsNotificationVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding NotificationKind}" Value="Warning"><Setter Property="BorderBrush" Value="{DynamicResource WarningBrush}" /></DataTrigger>
+                        <DataTrigger Binding="{Binding NotificationKind}" Value="Error"><Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}" /></DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="30" /><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding NotificationGlyph}" FontFamily="Segoe Fluent Icons" FontSize="17" VerticalAlignment="Top" Margin="1,2,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding NotificationKind}" Value="Warning"><Setter Property="Foreground" Value="{DynamicResource WarningBrush}" /></DataTrigger>
+                                <DataTrigger Binding="{Binding NotificationKind}" Value="Error"><Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" /></DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Grid.Column="1" Text="{Binding NotificationMessage}" Foreground="{DynamicResource ForegroundBrush}"
+                           TextWrapping="Wrap" LineHeight="19" VerticalAlignment="Center" />
+                <Button Grid.Column="2" Command="{Binding DismissNotificationCommand}" Style="{StaticResource NavigationButton}"
+                        Padding="0" Margin="2" ToolTip="Fechar aviso">
+                    <TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons" FontSize="11" HorizontalAlignment="Center" />
+                </Button>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

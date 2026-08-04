@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using HoopConnectionManager.Models;
 using HoopConnectionManager.Services.Abstractions;
 
@@ -19,10 +20,15 @@ public sealed partial class ConnectionViewModel : ObservableObject
     [ObservableProperty] private string? _password;
     [ObservableProperty] private DateTime? _connectedAt;
     [ObservableProperty] private string? _statusDetail;
+    [ObservableProperty] private bool _isPasswordVisible;
 
     public bool CanConnect => Status is ConnectionStatus.Disconnected or ConnectionStatus.Error;
     public bool CanDisconnect => Status is ConnectionStatus.Connected or ConnectionStatus.Reconnecting;
     public string LocalEndpoint => Host is not null && Port is not null ? $"{Host}:{Port}" : "Aguardando túnel";
+    public string PasswordDisplay => string.IsNullOrEmpty(Password)
+        ? "Indisponível"
+        : IsPasswordVisible ? Password : "••••••••••••";
+    public string PasswordVisibilityGlyph => IsPasswordVisible ? "\uED1A" : "\uE7B3";
     public string ConnectionStateLabel => Status switch
     {
         ConnectionStatus.Connecting => "Conectando",
@@ -36,7 +42,10 @@ public sealed partial class ConnectionViewModel : ObservableObject
     public void SetCredentials(ConnectionCredentials credentials)
     { Host = credentials.Host; Port = credentials.Port; Username = credentials.Username; Password = credentials.Password; }
 
-    public void ClearCredentials() { Host = null; Port = null; Username = null; Password = null; }
+    public void ClearCredentials() { Host = null; Port = null; Username = null; Password = null; IsPasswordVisible = false; }
+
+    [RelayCommand]
+    private void TogglePasswordVisibility() => IsPasswordVisible = !IsPasswordVisible;
 
     partial void OnStatusChanged(ConnectionStatus value)
     {
@@ -47,6 +56,12 @@ public sealed partial class ConnectionViewModel : ObservableObject
 
     partial void OnHostChanged(string? value) => OnPropertyChanged(nameof(LocalEndpoint));
     partial void OnPortChanged(int? value) => OnPropertyChanged(nameof(LocalEndpoint));
+    partial void OnPasswordChanged(string? value) => OnPropertyChanged(nameof(PasswordDisplay));
+    partial void OnIsPasswordVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(PasswordDisplay));
+        OnPropertyChanged(nameof(PasswordVisibilityGlyph));
+    }
 
     public ConnectionViewModel(Connection connection)
     {

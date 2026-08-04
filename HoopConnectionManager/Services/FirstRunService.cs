@@ -22,8 +22,6 @@ public sealed class FirstRunService : IFirstRunService
 
     public async Task CompleteWizardAsync(CancellationToken cancellationToken = default)
     {
-        var settings = _settingsService.Load();
-        settings.IsFirstRunCompleted = true;
-        await _settingsService.SaveAsync(settings, cancellationToken);
+        await _settingsService.UpdateAsync(settings => settings.IsFirstRunCompleted = true, cancellationToken);
     }
 }

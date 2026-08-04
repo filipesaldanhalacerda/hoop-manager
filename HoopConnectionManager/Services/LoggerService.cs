@@ -12,11 +12,12 @@ namespace HoopConnectionManager.Services;
 /// </summary>
 public sealed class LoggerService : ILoggerService
 {
+    private const long MaximumLogFileSize = 5 * 1024 * 1024;
     private static readonly Regex LogPattern = new(
         @"^\[(?<timestamp>[^\]]+)\] \[(?<level>[^\]]+)\] (?<message>.*)$",
         RegexOptions.Compiled);
     private readonly string _logsDirectory;
-    private readonly string _logFilePath;
+    private string _logFilePath;
     private readonly object _lock = new();
 
     public event EventHandler<LogEntry>? LogWritten;
@@ -29,7 +30,17 @@ public sealed class LoggerService : ILoggerService
         _logsDirectory = Path.Combine(rootDirectory, ApplicationConstants.LogsDirectoryName);
         _logFilePath = Path.Combine(_logsDirectory, $"log-{DateTime.Now:yyyy-MM-dd}.txt");
 
-        Directory.CreateDirectory(_logsDirectory);
+        try
+        {
+            Directory.CreateDirectory(_logsDirectory);
+            DeleteExpiredLogs();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logsDirectory = Path.Combine(Path.GetTempPath(), ApplicationConstants.ApplicationName, ApplicationConstants.LogsDirectoryName);
+            _logFilePath = Path.Combine(_logsDirectory, $"log-{DateTime.Now:yyyy-MM-dd}.txt");
+            Directory.CreateDirectory(_logsDirectory);
+        }
     }
 
     public void LogInformation(string message) => WriteLog("INFO", message);
@@ -83,6 +94,7 @@ public sealed class LoggerService : ILoggerService
         {
             lock (_lock)
             {
+                RotateLogIfNecessary();
                 File.AppendAllText(_logFilePath, entry);
             }
         }
@@ -106,5 +118,29 @@ public sealed class LoggerService : ILoggerService
             && DateTime.TryParse(match.Groups["timestamp"].Value, out var timestamp)
             ? new LogEntry(timestamp, match.Groups["level"].Value, match.Groups["message"].Value)
             : null;
+    }
+
+    private void RotateLogIfNecessary()
+    {
+        if (File.Exists(_logFilePath) && new FileInfo(_logFilePath).Length >= MaximumLogFileSize)
+        {
+            _logFilePath = Path.Combine(_logsDirectory, $"log-{DateTime.Now:yyyy-MM-dd-HHmmss}.txt");
+        }
+    }
+
+    private void DeleteExpiredLogs()
+    {
+        var threshold = DateTime.UtcNow.AddDays(-14);
+        foreach (var file in Directory.EnumerateFiles(_logsDirectory, "log-*.txt"))
+        {
+            try
+            {
+                if (File.GetLastWriteTimeUtc(file) < threshold)
+                {
+                    File.Delete(file);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        }
     }
 }

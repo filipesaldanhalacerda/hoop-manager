@@ -48,8 +48,7 @@ public sealed class HoopService : IHoopService
             ExecutablePath = candidate;
             if (await CanExecuteAsync(cancellationToken))
             {
-                settings.HoopExecutablePath = ExecutablePath;
-                await _settingsService.SaveAsync(settings, cancellationToken);
+                await _settingsService.UpdateAsync(value => value.HoopExecutablePath = ExecutablePath, cancellationToken);
                 return true;
             }
         }
@@ -176,18 +175,29 @@ public sealed class HoopService : IHoopService
 
         var credentialsCompletion = new TaskCompletionSource<ConnectionCredentials?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var outputBuilder = new System.Text.StringBuilder();
+        var credentialsCaptured = 0;
 
         process.OutputDataReceived += (_, e) =>
         {
             if (e.Data is null)
             {
-                credentialsCompletion.TrySetResult(HoopOutputParser.TryParseCredentials(outputBuilder.ToString()));
+                if (Volatile.Read(ref credentialsCaptured) == 0)
+                {
+                    credentialsCompletion.TrySetResult(HoopOutputParser.TryParseCredentials(outputBuilder.ToString()));
+                }
                 return;
             }
 
-            outputBuilder.AppendLine(e.Data);
-            var parsed = HoopOutputParser.TryParseCredentials(outputBuilder.ToString());
-            if (parsed is not null) credentialsCompletion.TrySetResult(parsed);
+            if (Volatile.Read(ref credentialsCaptured) == 0)
+            {
+                outputBuilder.AppendLine(e.Data);
+                var parsed = HoopOutputParser.TryParseCredentials(outputBuilder.ToString());
+                if (parsed is not null && Interlocked.Exchange(ref credentialsCaptured, 1) == 0)
+                {
+                    credentialsCompletion.TrySetResult(parsed);
+                    outputBuilder.Clear();
+                }
+            }
             _logger.LogInformation($"Hoop connect output: {SanitizeForLog(e.Data)}");
         };
 
@@ -236,6 +246,9 @@ public sealed class HoopService : IHoopService
 
         catch
         {
+            try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
+            catch (InvalidOperationException) { }
+            process.Dispose();
             ReleaseReservedPort(localPort);
             throw;
         }
@@ -432,6 +445,10 @@ public sealed class HoopService : IHoopService
     private static string SanitizeForLog(string input)
     {
         // Remove possíveis senhas ou tokens do log.
-        return Regex.Replace(input, @"(password|token|secret|key)[:\s=]+\S+", "$1=***", RegexOptions.IgnoreCase);
+        return Regex.Replace(
+            input,
+            @"(?<prefix>[""']?(?:password|token|secret|api[_-]?key)[""']?\s*[:=]\s*)[""']?[^""'\s,}]+[""']?",
+            "${prefix}***",
+            RegexOptions.IgnoreCase);
     }
 }

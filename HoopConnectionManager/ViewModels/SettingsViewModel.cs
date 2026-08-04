@@ -101,21 +101,21 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
 
         SaveStatus = "Salvando e aplicando configurações...";
-        var settings = _settingsService.Load();
-        settings.HoopExecutablePath = HoopExecutablePath.Trim();
-        settings.DBeaverExecutablePath = DbeaverExecutablePath.Trim();
-        settings.StartWithWindows = StartWithWindows;
-        settings.MinimizeToTray = MinimizeToTray;
-        settings.OpenDBeaverAutomatically = OpenDBeaverAutomatically;
-        settings.RefreshConnectionsOnStartup = RefreshConnectionsOnStartup;
-        settings.Theme = SelectedTheme;
-
         bool? previousStartupState = null;
         try
         {
             previousStartupState = _startupService.IsStartupEnabled();
             ApplyStartupSetting();
-            await _settingsService.SaveAsync(settings);
+            await _settingsService.UpdateAsync(settings =>
+            {
+                settings.HoopExecutablePath = HoopExecutablePath.Trim();
+                settings.DBeaverExecutablePath = DbeaverExecutablePath.Trim();
+                settings.StartWithWindows = StartWithWindows;
+                settings.MinimizeToTray = MinimizeToTray;
+                settings.OpenDBeaverAutomatically = OpenDBeaverAutomatically;
+                settings.RefreshConnectionsOnStartup = RefreshConnectionsOnStartup;
+                settings.Theme = SelectedTheme;
+            });
             ThemeManager.ApplyTheme(SelectedTheme);
             SaveStatus = $"Tudo aplicado às {DateTime.Now:HH:mm:ss}.";
             _logger.LogInformation("Configurações validadas e aplicadas.");
@@ -173,9 +173,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             // Evita várias gravações quando o usuário alterna rapidamente entre temas.
             await Task.Delay(150, cancellationToken);
-            var settings = _settingsService.Load();
-            settings.Theme = theme;
-            await _settingsService.SaveAsync(settings, cancellationToken);
+            await _settingsService.UpdateAsync(settings => settings.Theme = theme, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

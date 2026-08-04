@@ -28,9 +28,23 @@ public sealed class NavigationService : INavigationService
 
     public void NavigateTo(object viewModel)
     {
+        if (ReferenceEquals(CurrentViewModel, viewModel))
+        {
+            return;
+        }
+
         if (CurrentViewModel is not null)
         {
             _history.Push(CurrentViewModel);
+            if (_history.Count > 20)
+            {
+                var recent = _history.Take(20).Reverse().ToArray();
+                _history.Clear();
+                foreach (var item in recent)
+                {
+                    _history.Push(item);
+                }
+            }
         }
 
         CurrentViewModel = viewModel;

@@ -11,5 +11,6 @@ public interface ISettingsService
     event EventHandler<ApplicationSettings>? SettingsSaved;
     ApplicationSettings Load();
     Task SaveAsync(ApplicationSettings settings, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Action<ApplicationSettings> update, CancellationToken cancellationToken = default);
     string GetSettingsPath();
 }

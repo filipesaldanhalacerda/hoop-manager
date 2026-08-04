@@ -140,4 +140,36 @@ public sealed class ConnectionServiceTests
         }
         finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
     }
+
+    [TestMethod]
+    public async Task ConcurrentUpdatesDoNotOverwriteEachOther()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "hoop-manager-tests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var service = new SettingsService(directory);
+            var updates = Enumerable.Range(1, 20)
+                .Select(index => service.UpdateAsync(settings => settings.FavoriteConnectionIds.Add($"db-{index}")));
+
+            await Task.WhenAll(updates);
+
+            Assert.AreEqual(20, service.Load().FavoriteConnectionIds.Distinct().Count());
+        }
+        finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+    }
+}
+
+[TestClass]
+public sealed class CredentialTests
+{
+    [TestMethod]
+    public void DisposeRemovesPasswordFromCredentialObject()
+    {
+        var credentials = new ConnectionCredentials("127.0.0.1", 5433, "hoop", "temporary-secret");
+
+        credentials.Dispose();
+
+        Assert.AreEqual(string.Empty, credentials.Password);
+        Assert.IsFalse(credentials.ToString().Contains("temporary-secret", StringComparison.Ordinal));
+    }
 }

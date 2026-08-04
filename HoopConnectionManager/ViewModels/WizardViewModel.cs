@@ -152,9 +152,7 @@ public sealed partial class WizardViewModel : ObservableObject
         }
 
         DbeaverPath = dialog.FileName;
-        var settings = _settingsService.Load();
-        settings.DBeaverExecutablePath = DbeaverPath;
-        await _settingsService.SaveAsync(settings);
+        await _settingsService.UpdateAsync(settings => settings.DBeaverExecutablePath = DbeaverPath);
         _notificationService.Show("DBeaver localizado com sucesso.");
         CurrentStep = 5;
     }

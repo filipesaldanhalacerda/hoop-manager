@@ -25,9 +25,10 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="26" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="180" />
-                        <ColumnDefinition Width="95" />
-                        <ColumnDefinition Width="92" />
+                        <ColumnDefinition Width="165" />
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="78" />
+                        <ColumnDefinition Width="178" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
@@ -53,15 +54,27 @@
                         <TextBlock Text="DESDE" Style="{StaticResource MetricLabel}" />
                         <TextBlock Text="{Binding ConnectedAt, StringFormat={}{0:HH:mm:ss}}" Foreground="{DynamicResource ForegroundBrush}" />
                     </StackPanel>
-                    <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Content="Porta" ToolTip="Copiar porta local"
-                                Command="{Binding DataContext.CopyPortCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                CommandParameter="{Binding}"
-                                Style="{StaticResource SecondaryButton}" Padding="11,7" Margin="0,0,5,0" />
-                        <Button Content="Senha" ToolTip="Copiar senha temporária"
-                                Command="{Binding DataContext.CopyPasswordCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                CommandParameter="{Binding}"
-                                Style="{StaticResource SecondaryButton}" Padding="11,7" Margin="0,0,5,0" />
+                    <StackPanel Grid.Column="5" VerticalAlignment="Center" Margin="4,0,10,0">
+                        <TextBlock Text="SENHA TEMPORÁRIA" Style="{StaticResource MetricLabel}" />
+                        <Border Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1" CornerRadius="6" Height="32" Margin="0,3,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="30" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding PasswordDisplay}" FontFamily="{DynamicResource MonoFontFamily}" FontSize="11"
+                                           Foreground="{DynamicResource ForegroundBrush}" VerticalAlignment="Center" Margin="9,0,4,0" TextTrimming="CharacterEllipsis" />
+                                <Button Grid.Column="1" Command="{Binding TogglePasswordVisibilityCommand}" ToolTip="Exibir ou ocultar senha"
+                                        Style="{StaticResource NavigationButton}" Padding="0" Margin="1">
+                                    <TextBlock Text="{Binding PasswordVisibilityGlyph}" FontFamily="Segoe Fluent Icons" FontSize="13" HorizontalAlignment="Center" />
+                                </Button>
+                                <Button Grid.Column="2" ToolTip="Copiar senha temporária"
+                                        Command="{Binding DataContext.CopyPasswordCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" Style="{StaticResource NavigationButton}" Padding="0" Margin="1">
+                                    <TextBlock Text="&#xE8C8;" FontFamily="Segoe Fluent Icons" FontSize="13" HorizontalAlignment="Center" />
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                    <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Content="Desconectar" ToolTip="Encerrar este túnel"
                                 Command="{Binding DataContext.DisconnectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
@@ -230,23 +243,43 @@
                     </Border>
                 </Grid>
 
-                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
                 <ListView ItemsSource="{Binding FilteredConnections}"
                           ItemTemplate="{StaticResource ConnectionRowTemplate}"
                           Style="{StaticResource FluentListView}"
                           ItemContainerStyle="{StaticResource FluentListViewItem}">
                     <ListView.GroupStyle>
                         <GroupStyle>
-                            <GroupStyle.HeaderTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource AccentBrush}"
-                                               FontSize="12" FontWeight="Bold" Margin="2,12,0,6" />
-                                </DataTemplate>
-                            </GroupStyle.HeaderTemplate>
+                            <GroupStyle.ContainerStyle>
+                                <Style TargetType="GroupItem">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="GroupItem">
+                                                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                                        BorderThickness="1" CornerRadius="9" Margin="0,0,0,18" ClipToBounds="True">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                                        <Border Background="{DynamicResource SurfaceSecondaryBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+                                                            <Grid Margin="14,0">
+                                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                                    <Border Width="8" Height="8" CornerRadius="4" Background="{DynamicResource AccentBrush}" Margin="0,0,9,0" />
+                                                                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource ForegroundBrush}" FontSize="12" FontWeight="Bold" />
+                                                                </StackPanel>
+                                                                <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="{DynamicResource AccentSoftBrush}" CornerRadius="10" Padding="8,3">
+                                                                    <TextBlock Text="{Binding ItemCount, StringFormat={}{0} recursos}" Foreground="{DynamicResource AccentBrush}" FontSize="9" FontWeight="SemiBold" />
+                                                                </Border>
+                                                            </Grid>
+                                                        </Border>
+                                                        <ItemsPresenter Grid.Row="1" />
+                                                    </Grid>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </GroupStyle.ContainerStyle>
                         </GroupStyle>
                     </ListView.GroupStyle>
                 </ListView>
-                </Border>
             </StackPanel>
         </ScrollViewer>
     </Grid>

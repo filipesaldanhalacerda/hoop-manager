@@ -48,7 +48,7 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        Services.GetService<IConnectionService>()?.DisconnectAllAsync().GetAwaiter().GetResult();
+        (Services.GetService<IConnectionService>() as IDisposable)?.Dispose();
         var trayIcon = Services.GetService<ITrayIconService>();
         (trayIcon as IDisposable)?.Dispose();
 

@@ -15,7 +15,10 @@
     <SolidColorBrush x:Key="AccentBrush" Color="#315CAA" />
     <SolidColorBrush x:Key="AccentHoverBrush" Color="#4773C4" />
     <SolidColorBrush x:Key="AccentSoftBrush" Color="#163D52" />
+    <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="BorderBrush" Color="#284257" />
+    <SolidColorBrush x:Key="RowHoverBrush" Color="#18283A" />
+    <SolidColorBrush x:Key="SelectionBrush" Color="#1D3357" />
     <SolidColorBrush x:Key="ErrorBrush" Color="#FF7385" />
     <SolidColorBrush x:Key="ErrorSurfaceBrush" Color="#49212B" />
     <SolidColorBrush x:Key="WarningBrush" Color="#F5C451" />
@@ -25,7 +28,7 @@
 
     <Color x:Key="BackgroundColor">#07111D</Color>
     <Color x:Key="SurfaceColor">#101F2E</Color>
-    <Color x:Key="AccentColor">#00A9E8</Color>
+    <Color x:Key="AccentColor">#315CAA</Color>
 
     <FontFamily x:Key="DefaultFontFamily">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="DisplayFontFamily">Bahnschrift, Segoe UI Semibold</FontFamily>

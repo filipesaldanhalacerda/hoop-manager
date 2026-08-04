@@ -42,36 +42,52 @@ public static class ThemeManager
 
         if (isDark)
         {
-            SetBrush(resources, "BackgroundBrush", 7, 17, 29);
+            SetBrush(resources, "BackgroundBrush", 11, 16, 32);
             SetBrush(resources, "NavigationBrush", 10, 18, 38);
             SetBrush(resources, "NavigationSurfaceBrush", 17, 29, 55);
             SetBrush(resources, "NavigationForegroundBrush", 247, 248, 252);
             SetBrush(resources, "NavigationMutedBrush", 156, 167, 190);
-            SetBrush(resources, "SurfaceBrush", 16, 31, 46);
-            SetBrush(resources, "SurfaceSecondaryBrush", 22, 42, 60);
-            SetBrush(resources, "ElevatedBrush", 26, 49, 69);
-            SetBrush(resources, "ForegroundBrush", 242, 247, 250);
-            SetBrush(resources, "ForegroundSecondaryBrush", 145, 166, 183);
-            SetBrush(resources, "BorderBrush", 40, 66, 87);
-            SetBrush(resources, "AccentSoftBrush", 22, 61, 82);
+            SetBrush(resources, "SurfaceBrush", 17, 24, 39);
+            SetBrush(resources, "SurfaceSecondaryBrush", 24, 34, 53);
+            SetBrush(resources, "ElevatedBrush", 31, 43, 65);
+            SetBrush(resources, "ForegroundBrush", 244, 247, 251);
+            SetBrush(resources, "ForegroundSecondaryBrush", 167, 177, 194);
+            SetBrush(resources, "BorderBrush", 42, 53, 74);
+            SetBrush(resources, "AccentBrush", 79, 117, 190);
+            SetBrush(resources, "AccentHoverBrush", 100, 140, 215);
+            SetBrush(resources, "AccentSoftBrush", 23, 38, 74);
+            SetBrush(resources, "AccentForegroundBrush", 255, 255, 255);
+            SetBrush(resources, "RowHoverBrush", 24, 40, 58);
+            SetBrush(resources, "SelectionBrush", 29, 51, 87);
+            SetBrush(resources, "SuccessBrush", 66, 217, 160);
+            SetBrush(resources, "WarningBrush", 245, 196, 81);
+            SetBrush(resources, "ErrorBrush", 255, 115, 133);
             SetBrush(resources, "SuccessSurfaceBrush", 22, 63, 55);
             SetBrush(resources, "WarningSurfaceBrush", 73, 60, 32);
             SetBrush(resources, "ErrorSurfaceBrush", 73, 33, 43);
         }
         else
         {
-            SetBrush(resources, "BackgroundBrush", 237, 244, 248);
+            SetBrush(resources, "BackgroundBrush", 246, 247, 249);
             SetBrush(resources, "NavigationBrush", 10, 18, 38);
             SetBrush(resources, "NavigationSurfaceBrush", 17, 29, 55);
             SetBrush(resources, "NavigationForegroundBrush", 247, 248, 252);
             SetBrush(resources, "NavigationMutedBrush", 156, 167, 190);
             SetBrush(resources, "SurfaceBrush", 255, 255, 255);
-            SetBrush(resources, "SurfaceSecondaryBrush", 239, 246, 249);
-            SetBrush(resources, "ElevatedBrush", 228, 239, 245);
-            SetBrush(resources, "ForegroundBrush", 12, 31, 44);
-            SetBrush(resources, "ForegroundSecondaryBrush", 79, 105, 122);
-            SetBrush(resources, "BorderBrush", 190, 211, 222);
-            SetBrush(resources, "AccentSoftBrush", 232, 237, 248);
+            SetBrush(resources, "SurfaceSecondaryBrush", 241, 243, 246);
+            SetBrush(resources, "ElevatedBrush", 233, 237, 242);
+            SetBrush(resources, "ForegroundBrush", 23, 27, 36);
+            SetBrush(resources, "ForegroundSecondaryBrush", 101, 112, 132);
+            SetBrush(resources, "BorderBrush", 220, 225, 232);
+            SetBrush(resources, "AccentBrush", 49, 92, 170);
+            SetBrush(resources, "AccentHoverBrush", 40, 78, 148);
+            SetBrush(resources, "AccentSoftBrush", 233, 238, 250);
+            SetBrush(resources, "AccentForegroundBrush", 255, 255, 255);
+            SetBrush(resources, "RowHoverBrush", 245, 247, 250);
+            SetBrush(resources, "SelectionBrush", 233, 238, 250);
+            SetBrush(resources, "SuccessBrush", 22, 134, 95);
+            SetBrush(resources, "WarningBrush", 154, 107, 15);
+            SetBrush(resources, "ErrorBrush", 196, 62, 85);
             SetBrush(resources, "SuccessSurfaceBrush", 216, 244, 233);
             SetBrush(resources, "WarningSurfaceBrush", 255, 246, 214);
             SetBrush(resources, "ErrorSurfaceBrush", 255, 229, 233);

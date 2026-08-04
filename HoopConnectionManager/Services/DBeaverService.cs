@@ -30,7 +30,7 @@ public sealed class DBeaverService : IDBeaverService
         var registry = FindFromRegistry(); if (registry is not null) candidates.Insert(0, registry);
         var packagedApp = FindPackagedApp(); if (packagedApp is not null) candidates.Insert(0, packagedApp);
         var found = candidates.FirstOrDefault(File.Exists); if (found is null) return null;
-        settings.DBeaverExecutablePath = found; await _settingsService.SaveAsync(settings, cancellationToken); return found;
+        await _settingsService.UpdateAsync(value => value.DBeaverExecutablePath = found, cancellationToken); return found;
     }
 
     public async Task OpenConnectionAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken = default)

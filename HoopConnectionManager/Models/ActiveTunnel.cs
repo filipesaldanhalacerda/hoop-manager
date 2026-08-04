@@ -30,7 +30,7 @@ public sealed class ActiveTunnel : IDisposable
             if (Process is { HasExited: false })
             {
                 Process.Kill(entireProcessTree: true);
-                await Process.WaitForExitAsync(cancellationToken);
+                await Process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
         catch (InvalidOperationException)

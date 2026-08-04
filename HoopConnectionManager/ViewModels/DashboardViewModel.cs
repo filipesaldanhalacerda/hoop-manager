@@ -27,6 +27,7 @@ public sealed partial class DashboardViewModel : ObservableObject
         new(StringComparer.OrdinalIgnoreCase);
     private bool _statusRefreshInProgress;
     private bool _connectionsRefreshInProgress;
+    private CancellationTokenSource? _clipboardClearCancellation;
 
     [ObservableProperty]
     private string _searchText = string.Empty;
@@ -297,17 +298,14 @@ public sealed partial class DashboardViewModel : ObservableObject
 
         connection.IsFavorite = !connection.IsFavorite;
 
-        var settings = _settingsService.Load();
-        if (connection.IsFavorite)
-        {
-            settings.FavoriteConnectionIds.Add(connection.Id);
-        }
-        else
+        await _settingsService.UpdateAsync(settings =>
         {
             settings.FavoriteConnectionIds.Remove(connection.Id);
-        }
-
-        await _settingsService.SaveAsync(settings);
+            if (connection.IsFavorite)
+            {
+                settings.FavoriteConnectionIds.Add(connection.Id);
+            }
+        });
         RefreshFavoritesAndRecents();
     }
 
@@ -335,8 +333,43 @@ public sealed partial class DashboardViewModel : ObservableObject
     private void CopyTemporary(string? value, string label)
     {
         if (string.IsNullOrEmpty(value)) { _notificationService.Show("Conecte primeiro para obter os dados temporários.", NotificationLevel.Warning); return; }
-        System.Windows.Clipboard.SetText(value);
-        _notificationService.Show($"{label} copiado para a área de transferência.");
+        try
+        {
+            System.Windows.Clipboard.SetText(value);
+            if (label == "Senha")
+            {
+                var cancellation = new CancellationTokenSource();
+                var previous = Interlocked.Exchange(ref _clipboardClearCancellation, cancellation);
+                previous?.Cancel();
+                previous?.Dispose();
+                _ = ClearSensitiveClipboardAsync(value, cancellation.Token);
+                _notificationService.Show("Senha copiada. Ela será removida da área de transferência em 30 segundos.");
+            }
+            else
+            {
+                _notificationService.Show($"{label} copiado para a área de transferência.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Não foi possível copiar {label.ToLowerInvariant()}: {ex.Message}");
+            _notificationService.Show("O Windows não permitiu acessar a área de transferência.", NotificationLevel.Warning);
+        }
+    }
+
+    private static async Task ClearSensitiveClipboardAsync(string copiedValue, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+            if (System.Windows.Clipboard.ContainsText()
+                && string.Equals(System.Windows.Clipboard.GetText(), copiedValue, StringComparison.Ordinal))
+            {
+                System.Windows.Clipboard.Clear();
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (System.Runtime.InteropServices.COMException) { }
     }
 
     private async Task RefreshStatusAutomaticallyAsync()
@@ -398,16 +431,15 @@ public sealed partial class DashboardViewModel : ObservableObject
 
     private async Task PersistRecentConnectionAsync(ConnectionViewModel connection)
     {
-        var settings = _settingsService.Load();
-        settings.RecentConnectionIds.Remove(connection.Id);
-        settings.RecentConnectionIds.Insert(0, connection.Id);
-
-        if (settings.RecentConnectionIds.Count > 10)
+        await _settingsService.UpdateAsync(settings =>
         {
-            settings.RecentConnectionIds = settings.RecentConnectionIds.Take(10).ToList();
-        }
-
-        await _settingsService.SaveAsync(settings);
+            settings.RecentConnectionIds.Remove(connection.Id);
+            settings.RecentConnectionIds.Insert(0, connection.Id);
+            if (settings.RecentConnectionIds.Count > 10)
+            {
+                settings.RecentConnectionIds = settings.RecentConnectionIds.Take(10).ToList();
+            }
+        });
     }
 
     private void UpdateConnectionStatus(string connectionName, ConnectionStatus status, string? detail)

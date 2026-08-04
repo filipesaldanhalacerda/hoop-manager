@@ -11,6 +11,7 @@ namespace HoopConnectionManager.ViewModels;
 public sealed partial class MainWindowViewModel : ObservableObject
 {
     private readonly INavigationService _navigationService;
+    private CancellationTokenSource? _notificationCancellation;
 
     [ObservableProperty]
     private string _title = "Hoop Connection Manager";
@@ -21,11 +22,24 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string _statusMessage = "Pronto";
 
-    public MainWindowViewModel(INavigationService navigationService, ILoggerService logger)
+    [ObservableProperty]
+    private string _notificationMessage = string.Empty;
+
+    [ObservableProperty]
+    private string _notificationKind = "Information";
+
+    [ObservableProperty]
+    private string _notificationGlyph = "\uE946";
+
+    [ObservableProperty]
+    private bool _isNotificationVisible;
+
+    public MainWindowViewModel(INavigationService navigationService, ILoggerService logger, INotificationService notificationService)
     {
         _navigationService = navigationService;
         _navigationService.Navigated += (_, e) => CurrentViewModel = e.ViewModel;
         CurrentViewModel = _navigationService.CurrentViewModel;
+        notificationService.NotificationRaised += (_, e) => ShowNotification(e);
 
         logger.LogInformation("MainWindowViewModel inicializado.");
     }
@@ -52,5 +66,45 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private void GoBack()
     {
         _navigationService.GoBack();
+    }
+
+    [RelayCommand]
+    private void DismissNotification()
+    {
+        _notificationCancellation?.Cancel();
+        IsNotificationVisible = false;
+    }
+
+    private void ShowNotification(NotificationEventArgs notification)
+    {
+        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+        {
+            NotificationMessage = notification.Message;
+            NotificationKind = notification.Level.ToString();
+            NotificationGlyph = notification.Level switch
+            {
+                NotificationLevel.Error => "\uEA39",
+                NotificationLevel.Warning => "\uE7BA",
+                _ => "\uE946"
+            };
+            IsNotificationVisible = true;
+
+            var cancellation = new CancellationTokenSource();
+            var previous = Interlocked.Exchange(ref _notificationCancellation, cancellation);
+            previous?.Cancel();
+            previous?.Dispose();
+            _ = HideNotificationLaterAsync(notification.Level, cancellation.Token);
+        });
+    }
+
+    private async Task HideNotificationLaterAsync(NotificationLevel level, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var duration = level == NotificationLevel.Error ? TimeSpan.FromSeconds(9) : TimeSpan.FromSeconds(5);
+            await Task.Delay(duration, cancellationToken);
+            IsNotificationVisible = false;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
     }
 }

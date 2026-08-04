@@ -8,7 +8,7 @@ namespace HoopConnectionManager.Services;
 /// <summary>
 /// Gerencia túneis Hoop ativos e recupera conexões encerradas inesperadamente.
 /// </summary>
-public sealed class ConnectionService : IConnectionService
+public sealed class ConnectionService : IConnectionService, IDisposable
 {
     private static readonly TimeSpan[] ReconnectDelays =
     [
@@ -349,5 +349,31 @@ public sealed class ConnectionService : IConnectionService
     private void RaiseChanged(string connectionName, ConnectionStatus status, string? detail = null)
     {
         ActiveTunnelsChanged?.Invoke(this, new ActiveTunnelsChangedEventArgs(connectionName, status, detail));
+    }
+
+    public void Dispose()
+    {
+        List<ActiveTunnel> tunnels;
+        List<CancellationTokenSource> cancellations;
+        lock (_lock)
+        {
+            tunnels = _tunnels.Values.ToList();
+            cancellations = _reconnectCancellations.Values.ToList();
+            _tunnels.Clear();
+            _desiredConnections.Clear();
+            _disconnectingConnections.Clear();
+            _reconnectCancellations.Clear();
+        }
+
+        foreach (var cancellation in cancellations)
+        {
+            cancellation.Cancel();
+            cancellation.Dispose();
+        }
+
+        foreach (var tunnel in tunnels)
+        {
+            tunnel.Dispose();
+        }
     }
 }

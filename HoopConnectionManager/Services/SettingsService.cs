@@ -61,12 +61,7 @@ public sealed class SettingsService : ISettingsService
         await _saveLock.WaitAsync(cancellationToken);
         try
         {
-            Directory.CreateDirectory(_settingsDirectory);
-
-            var json = JsonSerializer.Serialize(settings, _jsonOptions);
-            var temporaryPath = _settingsPath + ".tmp";
-            await File.WriteAllTextAsync(temporaryPath, json, cancellationToken);
-            File.Move(temporaryPath, _settingsPath, true);
+            await WriteSettingsCoreAsync(settings, cancellationToken);
         }
         finally
         {
@@ -74,5 +69,33 @@ public sealed class SettingsService : ISettingsService
         }
 
         SettingsSaved?.Invoke(this, settings);
+    }
+
+    public async Task UpdateAsync(Action<ApplicationSettings> update, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(update);
+        ApplicationSettings settings;
+        await _saveLock.WaitAsync(cancellationToken);
+        try
+        {
+            settings = Load();
+            update(settings);
+            await WriteSettingsCoreAsync(settings, cancellationToken);
+        }
+        finally
+        {
+            _saveLock.Release();
+        }
+
+        SettingsSaved?.Invoke(this, settings);
+    }
+
+    private async Task WriteSettingsCoreAsync(ApplicationSettings settings, CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(_settingsDirectory);
+        var json = JsonSerializer.Serialize(settings, _jsonOptions);
+        var temporaryPath = _settingsPath + ".tmp";
+        await File.WriteAllTextAsync(temporaryPath, json, cancellationToken);
+        File.Move(temporaryPath, _settingsPath, true);
     }
 }

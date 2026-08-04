@@ -9,7 +9,7 @@ public sealed class ConnectionCredentials : IDisposable
     public string Host { get; init; } = string.Empty;
     public int Port { get; init; }
     public string Username { get; init; } = string.Empty;
-    private readonly string _password = string.Empty;
+    private string _password = string.Empty;
 
     public string Password => _password;
 
@@ -26,6 +26,7 @@ public sealed class ConnectionCredentials : IDisposable
     /// </summary>
     public void Dispose()
     {
+        _password = string.Empty;
         // Em cenários reais sensíveis, poderíamos usar SecureString ou Span<char>.
         // Aqui simplesmente evitamos expor acidentalmente em logs/JSON.
     }

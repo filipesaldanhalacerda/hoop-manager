@@ -91,7 +91,16 @@ public sealed class TrayIconService : ITrayIconService, IDisposable
 
         if (confirmation == DialogResult.Yes)
         {
-            await _connectionService.DisconnectAllAsync();
+            try
+            {
+                await _connectionService.DisconnectAllAsync();
+                ShowBalloonTip("Hoop Connection Manager", "Todas as conexões foram encerradas.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Falha ao desconectar túneis pela bandeja.");
+                ShowBalloonTip("Falha ao desconectar", "Abra o aplicativo para consultar os detalhes.");
+            }
         }
     }
 

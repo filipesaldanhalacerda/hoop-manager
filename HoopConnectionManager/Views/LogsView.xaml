@@ -77,25 +77,25 @@
                     <Button.Style><Style TargetType="Button" BasedOn="{StaticResource FilterChip}"><Style.Triggers>
                         <DataTrigger Binding="{Binding SelectedLevel}" Value="Todos"><Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" /><Setter Property="Foreground" Value="{DynamicResource AccentBrush}" /></DataTrigger>
                     </Style.Triggers></Style></Button.Style>
-                    <TextBlock><Run Text="Todos  "/><Run Text="{Binding Entries.Count}" /></TextBlock>
+                    <TextBlock><Run Text="Todos  "/><Run Text="{Binding Entries.Count, Mode=OneWay}" /></TextBlock>
                 </Button>
                 <Button Command="{Binding SelectLevelCommand}" CommandParameter="INFO">
                     <Button.Style><Style TargetType="Button" BasedOn="{StaticResource FilterChip}"><Style.Triggers>
                         <DataTrigger Binding="{Binding SelectedLevel}" Value="INFO"><Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" /><Setter Property="Foreground" Value="{DynamicResource AccentBrush}" /></DataTrigger>
                     </Style.Triggers></Style></Button.Style>
-                    <TextBlock><Run Text="Informações  "/><Run Text="{Binding InfoCount}" /></TextBlock>
+                    <TextBlock><Run Text="Informações  "/><Run Text="{Binding InfoCount, Mode=OneWay}" /></TextBlock>
                 </Button>
                 <Button Command="{Binding SelectLevelCommand}" CommandParameter="WARN">
                     <Button.Style><Style TargetType="Button" BasedOn="{StaticResource FilterChip}"><Style.Triggers>
                         <DataTrigger Binding="{Binding SelectedLevel}" Value="WARN"><Setter Property="Background" Value="{DynamicResource WarningSurfaceBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource WarningBrush}" /><Setter Property="Foreground" Value="{DynamicResource WarningBrush}" /></DataTrigger>
                     </Style.Triggers></Style></Button.Style>
-                    <TextBlock><Run Text="Alertas  "/><Run Text="{Binding WarningCount}" /></TextBlock>
+                    <TextBlock><Run Text="Alertas  "/><Run Text="{Binding WarningCount, Mode=OneWay}" /></TextBlock>
                 </Button>
                 <Button Command="{Binding SelectLevelCommand}" CommandParameter="ERROR">
                     <Button.Style><Style TargetType="Button" BasedOn="{StaticResource FilterChip}"><Style.Triggers>
                         <DataTrigger Binding="{Binding SelectedLevel}" Value="ERROR"><Setter Property="Background" Value="{DynamicResource ErrorSurfaceBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}" /><Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" /></DataTrigger>
                     </Style.Triggers></Style></Button.Style>
-                    <TextBlock><Run Text="Erros  "/><Run Text="{Binding ErrorCount}" /></TextBlock>
+                    <TextBlock><Run Text="Erros  "/><Run Text="{Binding ErrorCount, Mode=OneWay}" /></TextBlock>
                 </Button>
             </StackPanel>
         </Grid>
