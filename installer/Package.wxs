@@ -5,6 +5,8 @@
     <MajorUpgrade DowngradeErrorMessage="Uma versão mais recente do Dev Access Center já está instalada."
                   Schedule="afterInstallInitialize" />
     <MediaTemplate EmbedCab="yes" />
+    <Icon Id="ProductIcon" SourceFile="..\HoopConnectionManager\Assets\AppIcon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="ProductIcon" />
     <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="CompanyFolder" Name="Ambev">
         <Directory Id="INSTALLFOLDER" Name="Dev Access Center">

@@ -31,7 +31,7 @@ public sealed class TrayIconService : ITrayIconService, IDisposable
         {
             Text = ApplicationConstants.ApplicationName,
             Visible = true,
-            Icon = SystemIcons.Application
+            Icon = LoadApplicationIcon()
         };
 
         _notifyIcon.DoubleClick += (_, _) => OpenRequested?.Invoke(this, EventArgs.Empty);
@@ -108,5 +108,21 @@ public sealed class TrayIconService : ITrayIconService, IDisposable
     public void Dispose()
     {
         _notifyIcon?.Dispose();
+    }
+
+    private static Icon LoadApplicationIcon()
+    {
+        try
+        {
+            var resource = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/AppIcon.ico"));
+            if (resource?.Stream is null) return SystemIcons.Application;
+            using var stream = resource.Stream;
+            using var icon = new Icon(stream);
+            return (Icon)icon.Clone();
+        }
+        catch (Exception)
+        {
+            return SystemIcons.Application;
+        }
     }
 }
