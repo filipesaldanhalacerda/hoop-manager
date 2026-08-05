@@ -5,6 +5,9 @@ namespace HoopConnectionManager.Models;
 /// <summary>Representa um túnel Hoop ativo mantido em memória.</summary>
 public sealed class ActiveTunnel : IDisposable
 {
+    /// <summary>Limite para o encerramento síncrono feito na saída do aplicativo.</summary>
+    private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(5);
+
     private Action? _releaseResources;
     private int _disposed;
 
@@ -34,17 +37,38 @@ public sealed class ActiveTunnel : IDisposable
                 await Process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (InvalidOperationException)
+        catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException)
         {
             // O processo já foi encerrado ou descartado.
         }
         finally
         {
-            Interlocked.Exchange(ref _releaseResources, null)?.Invoke();
-            Credentials?.Dispose();
-            Process?.Dispose();
+            ReleaseHeldResources();
         }
     }
 
-    public void Dispose() => StopAsync().GetAwaiter().GetResult();
+    /// <summary>
+    /// Encerramento síncrono usado na saída do aplicativo. O sinal de término já foi
+    /// enviado ao processo; esperar por ele sem limite travaria a interface, então a
+    /// espera é limitada e os recursos são liberados de qualquer forma.
+    /// </summary>
+    public void Dispose()
+    {
+        using var timeout = new CancellationTokenSource(ShutdownTimeout);
+        try
+        {
+            StopAsync(timeout.Token).GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException)
+        {
+            ReleaseHeldResources();
+        }
+    }
+
+    private void ReleaseHeldResources()
+    {
+        Interlocked.Exchange(ref _releaseResources, null)?.Invoke();
+        Credentials?.Dispose();
+        Process?.Dispose();
+    }
 }

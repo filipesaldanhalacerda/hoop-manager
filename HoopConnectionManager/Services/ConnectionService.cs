@@ -28,6 +28,7 @@ public sealed class ConnectionService : IConnectionService, IDisposable
     private readonly Dictionary<string, int> _healthFailures = new(StringComparer.OrdinalIgnoreCase);
     private readonly CancellationTokenSource _healthMonitorCancellation = new();
     private readonly object _lock = new();
+    private int _disposed;
 
     public IReadOnlyDictionary<string, ActiveTunnel> ActiveTunnels
     {
@@ -146,6 +147,7 @@ public sealed class ConnectionService : IConnectionService, IDisposable
                 {
                     _tunnels.Remove(connectionName);
                 }
+                _healthFailures.Remove(connectionName);
                 _disconnectingConnections.Remove(connectionName);
             }
 
@@ -157,6 +159,16 @@ public sealed class ConnectionService : IConnectionService, IDisposable
         {
             lock (_lock)
             {
+                // O processo já recebeu o sinal de término e o túnel foi descartado.
+                // Manter a entrada só inflaria a contagem de túneis ativos, o aviso de
+                // saída e a próxima varredura de saúde, sem representar nada vivo.
+                if (tunnel is not null
+                    && _tunnels.TryGetValue(connectionName, out var current)
+                    && ReferenceEquals(current, tunnel))
+                {
+                    _tunnels.Remove(connectionName);
+                }
+                _healthFailures.Remove(connectionName);
                 _disconnectingConnections.Remove(connectionName);
             }
             _logger.LogError(ex, $"Falha ao confirmar a desconexão de '{connectionName}'.");
@@ -537,6 +549,12 @@ public sealed class ConnectionService : IConnectionService, IDisposable
 
     public void Dispose()
     {
+        // Chamado tanto no encerramento da sessão do Windows quanto em App.OnExit.
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         _healthMonitorCancellation.Cancel();
         List<ActiveTunnel> tunnels;
         List<CancellationTokenSource> cancellations;
