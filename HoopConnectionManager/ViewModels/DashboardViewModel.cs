@@ -428,7 +428,7 @@ public sealed partial class DashboardViewModel : ObservableObject
             {
                 try
                 {
-                    await _dbeaverService.OpenConnectionAsync(new DBeaverConnectionInfo
+                    var opened = await _dbeaverService.OpenConnectionAsync(new DBeaverConnectionInfo
                     {
                         ConnectionId = connection.Id,
                         ConnectionName = connection.Name,
@@ -437,14 +437,33 @@ public sealed partial class DashboardViewModel : ObservableObject
                         Username = tunnel.Credentials.Username,
                         Password = tunnel.Credentials.Password
                     });
+
+                    if (!opened)
+                    {
+                        // O túnel está de pé; só a entrega ao DBeaver não foi confirmada.
+                        // Sem este aviso o usuário só descobria abrindo o arquivo de log.
+                        _notificationService.Show(
+                            $"Túnel de '{connection.DisplayName}' ativo na porta {tunnel.Credentials.Port}, " +
+                            "mas o DBeaver não confirmou o recebimento. Copie os dados da conexão e abra manualmente.",
+                            NotificationLevel.Warning);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning($"Túnel conectado, mas o DBeaver não pôde ser aberto: {ex.Message}");
+                    // Qualquer falha aqui era anunciada como "DBeaver não encontrado", mesmo
+                    // quando a causa era outra — um dado inválido na conexão, por exemplo.
+                    // A mensagem errada manda o usuário procurar o executável à toa e esconde
+                    // o motivo real, que é justamente o que se precisa para diagnosticar.
+                    _logger.LogWarning(
+                        $"Túnel conectado, mas o DBeaver não abriu a conexão '{connection.Name}': " +
+                        $"{ex.GetType().Name} — {ex.Message}");
+                    var notFound = ex.Message.Contains("não encontrado", StringComparison.OrdinalIgnoreCase);
                     _notificationService.Show(
-                        "DBeaver não encontrado — selecione o executável nas Configurações. O túnel continua conectado.",
+                        notFound
+                            ? "DBeaver não encontrado — selecione o executável nas Configurações. O túnel continua conectado."
+                            : $"O túnel está ativo, mas o DBeaver não abriu a conexão: {ex.Message}",
                         NotificationLevel.Warning,
-                        NotificationAction.SelectDBeaver);
+                        notFound ? NotificationAction.SelectDBeaver : NotificationAction.None);
                 }
             }
         }
