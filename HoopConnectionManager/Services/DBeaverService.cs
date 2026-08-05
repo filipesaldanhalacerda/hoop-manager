@@ -11,10 +11,12 @@ namespace HoopConnectionManager.Services;
 public sealed class DBeaverService : IDBeaverService
 {
     private const string DBeaverStorePackagePrefix = "DBeaverCorp.DBeaverCE_";
+    private const string PackagedAppsFolderSegment = @"\WindowsApps\";
     private const int RestoreWindow = 9;
-    // O launcher encaminha e encerra em poucos segundos; a abertura fria costuma
-    // levar bem mais em máquinas corporativas com antivírus no caminho.
-    private static readonly TimeSpan ForwardingTimeout = TimeSpan.FromSeconds(45);
+    // Um launcher que encaminha encerra em poucos segundos. Se ele continua vivo, é
+    // porque virou uma segunda instância — e nesse caso esperar não muda o resultado,
+    // só atrasa o aviso. 45s deixavam o usuário quase um minuto sem retorno nenhum.
+    private static readonly TimeSpan ForwardingTimeout = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(90);
     private readonly ISettingsService _settingsService;
     private readonly ILoggerService _logger;
@@ -66,10 +68,10 @@ public sealed class DBeaverService : IDBeaverService
         return found;
     }
 
-    public async Task OpenConnectionAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken = default)
+    public async Task<bool> OpenConnectionAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(info);
-        await OpenOrUpdateConnectionAsync(info, cancellationToken);
+        return await OpenOrUpdateConnectionAsync(info, cancellationToken);
     }
 
     public async Task<bool> UpdateConnectionConfigurationAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken = default)
@@ -97,9 +99,14 @@ public sealed class DBeaverService : IDBeaverService
             // janela aberta, o launcher encaminha o comando para ela e encerra sozinho,
             // de modo que nenhuma segunda janela é criada. Também não usamos
             // -reuseWorkspace: essa opção é justamente o que autoriza uma nova instância.
+            var launcherPath = GetCommandLineExecutable(path);
+            _logger.LogInformation(
+                $"Abrindo '{info.ConnectionName}' na porta {info.Port} via {launcherPath} " +
+                $"(DBeaver {(alreadyRunning ? "já aberto" : "fechado")}).");
+
             var startInfo = new ProcessStartInfo
             {
-                FileName = GetCommandLineExecutable(path),
+                FileName = launcherPath,
                 UseShellExecute = true
             };
             startInfo.ArgumentList.Add("-con");
@@ -117,11 +124,13 @@ public sealed class DBeaverService : IDBeaverService
 
                 if (!forwarded)
                 {
-                    // Nenhuma distribuição testada chega aqui; se alguma variante empacotada
-                    // deixar de encaminhar, o registro identifica a máquina exata.
+                    // O launcher continuou vivo em vez de repassar o comando e sair: ele
+                    // virou uma segunda instância. Registrar qual executável foi usado é o
+                    // que permite identificar instalações sem launcher de console.
                     _logger.LogWarning(
-                        $"O DBeaver não confirmou o encaminhamento de '{info.ConnectionName}' para a janela já aberta. " +
-                        "Verifique se esta instalação abriu uma segunda janela.");
+                        $"{launcherPath} não encaminhou '{info.ConnectionName}' para a janela já aberta e " +
+                        $"continuou em execução — provavelmente abriu uma segunda janela. " +
+                        "Instalações com launcher de console (dbeaverc.exe) encaminham corretamente.");
                     return false;
                 }
 
@@ -230,10 +239,37 @@ public sealed class DBeaverService : IDBeaverService
         lock (_connectionNamesLock) _knownConnectionNames.Add(name);
     }
 
-    private static string GetCommandLineExecutable(string dbeaverPath)
+    /// <summary>
+    /// Escolhe por qual executável o DBeaver será acionado.
+    /// </summary>
+    /// <remarks>
+    /// O launcher de console continua tendo prioridade. A novidade é o caso empacotado:
+    /// chamar o .exe direto de dentro de <c>WindowsApps</c> ignora a ativação do modelo de
+    /// aplicativo do Windows, e cada chamada vira um processo isolado que não repassa o
+    /// comando para a janela já aberta — era isso que abria a segunda janela. O alias de
+    /// execução passa pela ativação correta e alcança a instância existente.
+    /// </remarks>
+    internal static string GetCommandLineExecutable(string dbeaverPath, string? aliasDirectory = null)
     {
         var commandLinePath = Path.Combine(Path.GetDirectoryName(dbeaverPath)!, "dbeaverc.exe");
-        return File.Exists(commandLinePath) ? commandLinePath : dbeaverPath;
+        if (File.Exists(commandLinePath))
+        {
+            return commandLinePath;
+        }
+
+        if (dbeaverPath.Contains(PackagedAppsFolderSegment, StringComparison.OrdinalIgnoreCase))
+        {
+            var directory = aliasDirectory ?? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Microsoft", "WindowsApps");
+            var alias = Path.Combine(directory, Path.GetFileName(dbeaverPath));
+            if (File.Exists(alias))
+            {
+                return alias;
+            }
+        }
+
+        return dbeaverPath;
     }
 
     private static bool ConnectionExistsInWorkspace(string connectionName)

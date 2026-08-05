@@ -102,6 +102,52 @@ public sealed class DBeaverServiceTests
         }
     }
 
+    /// <summary>
+    /// Regressão da instalação da Microsoft Store: apontar para o .exe dentro de
+    /// WindowsApps ignora a ativação do modelo de aplicativo e cada chamada vira uma
+    /// instância isolada — foi o que abriu a segunda janela na máquina corporativa.
+    /// </summary>
+    [TestMethod]
+    public void UsesTheExecutionAliasForPackagedInstalls()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "dev-access-alias", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var alias = Path.Combine(directory, "dbeaver.exe");
+            File.WriteAllBytes(alias, []);
+            const string packaged = @"C:\Program Files\WindowsApps\DBeaverCorp.DBeaverCE_26.1.3.0_x64__1b7tdvn0p0f9y\dbeaver.exe";
+
+            Assert.AreEqual(alias, DBeaverService.GetCommandLineExecutable(packaged, directory));
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
+    [TestMethod]
+    public void KeepsThePackagedPathWhenNoAliasIsRegistered()
+    {
+        var empty = Path.Combine(Path.GetTempPath(), "dev-access-alias", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(empty);
+        try
+        {
+            const string packaged = @"C:\Program Files\WindowsApps\DBeaverCorp.DBeaverCE_26.1.3.0_x64__1b7tdvn0p0f9y\dbeaver.exe";
+
+            Assert.AreEqual(packaged, DBeaverService.GetCommandLineExecutable(packaged, empty));
+        }
+        finally { Directory.Delete(empty, true); }
+    }
+
+    /// <summary>
+    /// Instalação tradicional não pode ser afetada pelo tratamento do caso empacotado.
+    /// </summary>
+    [TestMethod]
+    public void LeavesRegularInstallsUntouched()
+    {
+        const string regular = @"C:\Program Files\DBeaver\dbeaver.exe";
+
+        Assert.AreEqual(regular, DBeaverService.GetCommandLineExecutable(regular));
+    }
+
     private static DBeaverConnectionInfo SampleConnection(string? connectionName = null, int port = 5433) => new()
     {
         ConnectionId = "orders-dev",

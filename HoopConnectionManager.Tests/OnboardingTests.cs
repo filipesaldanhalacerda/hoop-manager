@@ -136,7 +136,7 @@ public sealed class FirstRunServiceTests
             return Task.FromResult(DetectedPath);
         }
 
-        public Task OpenConnectionAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<bool> OpenConnectionAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task<bool> UpdateConnectionConfigurationAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken = default) => Task.FromResult(true);
     }
 
