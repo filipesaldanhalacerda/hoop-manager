@@ -218,7 +218,7 @@
                         </Border>
                         <Border Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="10" Padding="16,14">
                             <StackPanel><TextBlock Text="04  SEM INTERCEPTAR O BANCO" Foreground="{DynamicResource AccentBrush}" FontSize="10" FontWeight="Bold" />
-                                <TextBlock Text="O gerenciador coordena o túnel e entrega o endpoint local ao DBeaver; ele não lê consultas, resultados ou o conteúdo trafegado na sessão do banco."
+                                <TextBlock Text="O aplicativo coordena o túnel e entrega os dados do endpoint local para você usar no cliente que preferir; ele não lê consultas, resultados ou o conteúdo trafegado na sessão do banco."
                                            Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" LineHeight="19" Margin="0,6,0,0" /></StackPanel>
                         </Border>
                     </StackPanel>

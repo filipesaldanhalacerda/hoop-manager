@@ -1,4 +1,3 @@
-using System.IO;
 using HoopConnectionManager.Models;
 using HoopConnectionManager.Services.Abstractions;
 
@@ -11,16 +10,11 @@ public sealed class FirstRunService : IFirstRunService
 {
     private readonly ISettingsService _settingsService;
     private readonly IHoopService _hoopService;
-    private readonly IDBeaverService _dbeaverService;
 
-    public FirstRunService(
-        ISettingsService settingsService,
-        IHoopService hoopService,
-        IDBeaverService dbeaverService)
+    public FirstRunService(ISettingsService settingsService, IHoopService hoopService)
     {
         _settingsService = settingsService;
         _hoopService = hoopService;
-        _dbeaverService = dbeaverService;
     }
 
     public bool ShouldShowWizard()
@@ -37,22 +31,6 @@ public sealed class FirstRunService : IFirstRunService
     {
         var installed = await _hoopService.IsInstalledAsync(cancellationToken);
         var authenticated = installed && await _hoopService.IsAuthenticatedAsync(cancellationToken);
-        return new EnvironmentReadiness(installed, authenticated, await IsDBeaverLocatedAsync(cancellationToken));
-    }
-
-    /// <summary>
-    /// Confere primeiro o caminho já gravado: <see cref="IDBeaverService.LocateAsync"/>
-    /// persiste o resultado, e esta verificação roda periodicamente — sondar sempre
-    /// significaria gravar as configurações em disco a cada ciclo.
-    /// </summary>
-    private async Task<bool> IsDBeaverLocatedAsync(CancellationToken cancellationToken)
-    {
-        var configured = _settingsService.Load().DBeaverExecutablePath;
-        if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured))
-        {
-            return true;
-        }
-
-        return await _dbeaverService.LocateAsync(cancellationToken) is not null;
+        return new EnvironmentReadiness(installed, authenticated);
     }
 }

@@ -21,7 +21,6 @@ public static class ServiceRegistration
         services.AddSingleton<ILoginService, LoginService>();
         services.AddSingleton<IConnectionService, ConnectionService>();
         services.AddSingleton<ISessionHistoryService, SessionHistoryService>();
-        services.AddSingleton<IDBeaverService, DBeaverService>();
         services.AddSingleton<IFirstRunService, FirstRunService>();
         services.AddSingleton<IStartupService, StartupService>();
         services.AddSingleton<ITrayIconService, TrayIconService>();

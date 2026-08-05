@@ -25,9 +25,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string _hoopExecutablePath = string.Empty;
 
     [ObservableProperty]
-    private string _dbeaverExecutablePath = string.Empty;
-
-    [ObservableProperty]
     private bool _startWithWindows;
 
     [ObservableProperty]
@@ -35,9 +32,6 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _disconnectTunnelsOnExit = true;
-
-    [ObservableProperty]
-    private bool _openDBeaverAutomatically = true;
 
     [ObservableProperty]
     private bool _refreshConnectionsOnStartup = true;
@@ -184,16 +178,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void BrowseDBeaverExecutable()
-    {
-        var path = OpenFileDialog("Executáveis|*.exe|Todos os arquivos|*.*");
-        if (!string.IsNullOrWhiteSpace(path))
-        {
-            DbeaverExecutablePath = path;
-        }
-    }
-
-    [RelayCommand]
     private async Task SaveAsync()
     {
         var validationError = ValidateExecutablePaths();
@@ -213,11 +197,9 @@ public sealed partial class SettingsViewModel : ObservableObject
             await _settingsService.UpdateAsync(settings =>
             {
                 settings.HoopExecutablePath = HoopExecutablePath.Trim();
-                settings.DBeaverExecutablePath = DbeaverExecutablePath.Trim();
                 settings.StartWithWindows = StartWithWindows;
                 settings.MinimizeToTray = MinimizeToTray;
                 settings.DisconnectTunnelsOnExit = DisconnectTunnelsOnExit;
-                settings.OpenDBeaverAutomatically = OpenDBeaverAutomatically;
                 settings.RefreshConnectionsOnStartup = RefreshConnectionsOnStartup;
                 settings.Theme = SelectedTheme;
             });
@@ -257,7 +239,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         var settings = _settingsService.Load();
         HoopExecutablePath = settings.HoopExecutablePath;
-        DbeaverExecutablePath = settings.DBeaverExecutablePath;
         try
         {
             StartWithWindows = _startupService.IsStartupEnabled();
@@ -268,7 +249,6 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
         MinimizeToTray = settings.MinimizeToTray;
         DisconnectTunnelsOnExit = settings.DisconnectTunnelsOnExit;
-        OpenDBeaverAutomatically = settings.OpenDBeaverAutomatically;
         RefreshConnectionsOnStartup = settings.RefreshConnectionsOnStartup;
         SelectedTheme = settings.Theme;
     }
@@ -311,21 +291,10 @@ public sealed partial class SettingsViewModel : ObservableObject
             return "O caminho configurado para o Hoop não existe.";
         }
 
-        if (!string.IsNullOrWhiteSpace(DbeaverExecutablePath) && !File.Exists(DbeaverExecutablePath.Trim()))
-        {
-            return "O caminho configurado para o DBeaver não existe.";
-        }
-
         if (!string.IsNullOrWhiteSpace(HoopExecutablePath)
             && !string.Equals(Path.GetExtension(HoopExecutablePath.Trim()), ".exe", StringComparison.OrdinalIgnoreCase))
         {
             return "Selecione um executável (.exe) válido para o Hoop.";
-        }
-
-        if (!string.IsNullOrWhiteSpace(DbeaverExecutablePath)
-            && !string.Equals(Path.GetExtension(DbeaverExecutablePath.Trim()), ".exe", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Selecione um executável (.exe) válido para o DBeaver.";
         }
 
         return null;

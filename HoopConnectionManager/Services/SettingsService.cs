@@ -102,11 +102,9 @@ public sealed class SettingsService : ISettingsService
     private static ApplicationSettings Clone(ApplicationSettings settings) => new()
     {
         HoopExecutablePath = settings.HoopExecutablePath,
-        DBeaverExecutablePath = settings.DBeaverExecutablePath,
         StartWithWindows = settings.StartWithWindows,
         MinimizeToTray = settings.MinimizeToTray,
         DisconnectTunnelsOnExit = settings.DisconnectTunnelsOnExit,
-        OpenDBeaverAutomatically = settings.OpenDBeaverAutomatically,
         RefreshConnectionsOnStartup = settings.RefreshConnectionsOnStartup,
         LogRetentionDays = settings.LogRetentionDays,
         Theme = settings.Theme,

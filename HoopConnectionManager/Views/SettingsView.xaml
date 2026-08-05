@@ -81,25 +81,15 @@
                             </StackPanel>
                         </Grid>
                         <TextBlock Style="{StaticResource CardIntro}"
-                                   Text="Esses caminhos são usados para iniciar o Hoop e abrir o DBeaver após criar um túnel." />
+                                   Text="Este caminho é usado para autenticar e abrir os túneis locais. O aplicativo não inicia nenhum cliente de banco: os dados da conexão ficam disponíveis para copiar." />
 
                         <TextBlock Text="Hoop CLI" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" />
                         <TextBlock Text="Executável responsável pela autenticação e pelos túneis locais."
                                    Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" Margin="0,2,0,7" />
-                        <Grid Margin="0,0,0,18">
+                        <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                             <TextBox Text="{Binding HoopExecutablePath}" Style="{StaticResource FluentTextBox}" FontFamily="{DynamicResource MonoFontFamily}" FontSize="12" />
                             <Button Grid.Column="1" Content="Localizar" Command="{Binding BrowseHoopExecutableCommand}"
-                                    Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" />
-                        </Grid>
-
-                        <TextBlock Text="DBeaver" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" />
-                        <TextBlock Text="Cliente que será aberto automaticamente com o endpoint local."
-                                   Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" Margin="0,2,0,7" />
-                        <Grid>
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <TextBox Text="{Binding DbeaverExecutablePath}" Style="{StaticResource FluentTextBox}" FontFamily="{DynamicResource MonoFontFamily}" FontSize="12" />
-                            <Button Grid.Column="1" Content="Localizar" Command="{Binding BrowseDBeaverExecutableCommand}"
                                     Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" />
                         </Grid>
                     </StackPanel>
@@ -182,8 +172,6 @@
                         <CheckBox Content="Encerrar todos os túneis ao sair do aplicativo" IsChecked="{Binding DisconnectTunnelsOnExit}"
                                   ToolTip="Quando desativado, o aplicativo pedirá confirmação antes de encerrar túneis ativos."
                                   Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
-                        <CheckBox Content="Abrir o DBeaver automaticamente após conectar" IsChecked="{Binding OpenDBeaverAutomatically}"
-                                  Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
                         <CheckBox Content="Sincronizar o catálogo automaticamente a cada 5 minutos" IsChecked="{Binding RefreshConnectionsOnStartup}"
                                   Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
                     </StackPanel>
@@ -220,7 +208,7 @@
                             </StackPanel>
                         </Grid>
                         <TextBlock Style="{StaticResource CardIntro}"
-                                   Text="Refaz a verificação de Hoop, autenticação e DBeaver. O assistente abre direto na primeira etapa que ainda estiver pendente." />
+                                   Text="Refaz a verificação do Hoop e da autenticação. O assistente abre direto na primeira etapa que ainda estiver pendente." />
                         <Button Content="Abrir configuração guiada" Command="{Binding OpenGuidedSetupCommand}"
                                 Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Padding="18,9" />
                     </StackPanel>
@@ -249,7 +237,7 @@
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <Border Style="{StaticResource FlowStepBadge}"><TextBlock Text="3" Style="{StaticResource FlowStepNumber}" /></Border>
-                            <TextBlock Grid.Column="1" Text="O DBeaver usa esse endpoint local" Style="{StaticResource FlowStepText}" />
+                            <TextBlock Grid.Column="1" Text="Você copia os dados no seu gerenciador de banco" Style="{StaticResource FlowStepText}" />
                         </Grid>
                         <Border Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="7" Padding="11,9" Margin="0,14,0,0">
                             <Grid>

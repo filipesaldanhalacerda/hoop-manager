@@ -6,11 +6,9 @@ namespace HoopConnectionManager.Configuration;
 public sealed class ApplicationSettings
 {
     public string HoopExecutablePath { get; set; } = string.Empty;
-    public string DBeaverExecutablePath { get; set; } = string.Empty;
     public bool StartWithWindows { get; set; }
     public bool MinimizeToTray { get; set; } = true;
     public bool DisconnectTunnelsOnExit { get; set; } = true;
-    public bool OpenDBeaverAutomatically { get; set; } = true;
     public bool RefreshConnectionsOnStartup { get; set; } = true;
     public int LogRetentionDays { get; set; } = 14;
     public string Theme { get; set; } = "Auto";

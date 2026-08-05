@@ -11,8 +11,8 @@ public interface IFirstRunService
     Task CompleteWizardAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Verifica o estado real da máquina: Hoop localizado, sessão válida e DBeaver
-    /// localizado. É o que mantém a configuração guiada acessível depois da primeira vez.
+    /// Verifica o estado real da máquina: Hoop localizado e sessão válida. É o que mantém
+    /// a configuração guiada acessível depois da primeira vez.
     /// </summary>
     Task<EnvironmentReadiness> EvaluateReadinessAsync(CancellationToken cancellationToken = default);
 }

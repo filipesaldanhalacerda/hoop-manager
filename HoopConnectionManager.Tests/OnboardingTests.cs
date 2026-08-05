@@ -12,30 +12,41 @@ public sealed class EnvironmentReadinessTests
     [TestMethod]
     public void PointsToTheFirstStepThatIsStillMissing()
     {
-        Assert.AreEqual(1, new EnvironmentReadiness(false, false, false).FirstPendingStep);
-        Assert.AreEqual(2, new EnvironmentReadiness(true, false, false).FirstPendingStep);
+        Assert.AreEqual(1, new EnvironmentReadiness(false, false).FirstPendingStep);
+        Assert.AreEqual(2, new EnvironmentReadiness(true, false).FirstPendingStep);
         // A etapa 3 é apenas o catálogo e não persiste nada, então é pulada na retomada.
-        Assert.AreEqual(4, new EnvironmentReadiness(true, true, false).FirstPendingStep);
-        Assert.AreEqual(5, new EnvironmentReadiness(true, true, true).FirstPendingStep);
+        Assert.AreEqual(4, new EnvironmentReadiness(true, true).FirstPendingStep);
     }
 
     [TestMethod]
     public void IsOnlyReadyWhenEveryDependencyIsInPlace()
     {
-        Assert.IsTrue(new EnvironmentReadiness(true, true, true).IsReady);
-        Assert.IsFalse(new EnvironmentReadiness(true, true, false).IsReady);
-        Assert.IsFalse(new EnvironmentReadiness(true, false, true).IsReady);
-        Assert.IsFalse(new EnvironmentReadiness(false, true, true).IsReady);
+        Assert.IsTrue(new EnvironmentReadiness(true, true).IsReady);
+        Assert.IsFalse(new EnvironmentReadiness(true, false).IsReady);
+        Assert.IsFalse(new EnvironmentReadiness(false, true).IsReady);
     }
 
     [TestMethod]
     public void NamesWhatIsMissingInTheSummary()
     {
-        var summary = new EnvironmentReadiness(true, true, false).Summary;
+        var summary = new EnvironmentReadiness(true, false).Summary;
 
-        StringAssert.Contains(summary, "DBeaver");
+        StringAssert.Contains(summary, "autenticação");
         Assert.IsFalse(summary.Contains("Hoop CLI", StringComparison.Ordinal),
             "O que já está resolvido não deve aparecer como pendência.");
+    }
+
+    /// <summary>
+    /// O aplicativo não inicia mais nenhum cliente de banco, então a prontidão do
+    /// ambiente não pode depender de encontrar um executável na máquina.
+    /// </summary>
+    [TestMethod]
+    public void DoesNotDependOnAnyDatabaseClient()
+    {
+        var readiness = new EnvironmentReadiness(true, true);
+
+        Assert.IsTrue(readiness.IsReady);
+        Assert.AreEqual(0, readiness.PendingItems.Count);
     }
 }
 
@@ -58,42 +69,26 @@ public sealed class FirstRunServiceTests
         Assert.AreEqual(1, readiness.FirstPendingStep);
     }
 
-    /// <summary>
-    /// A verificação roda periodicamente e LocateAsync grava as configurações em disco;
-    /// reaproveitar o caminho já salvo evita uma gravação a cada ciclo.
-    /// </summary>
     [TestMethod]
-    public async Task ReusesTheSavedDBeaverPathWithoutProbingAgain()
+    public async Task ReportsPendingAuthenticationWhenTheCliIsInstalledButTheSessionIsNot()
     {
-        using var environment = new FirstRunEnvironment(hoopInstalled: true, hoopAuthenticated: true, saveDBeaverPath: true);
+        using var environment = new FirstRunEnvironment(hoopInstalled: true, hoopAuthenticated: false);
 
         var readiness = await environment.Service.EvaluateReadinessAsync();
 
-        Assert.IsTrue(readiness.DBeaverLocated);
-        Assert.AreEqual(0, environment.DBeaver.LocateCalls, "O caminho salvo já respondia à pergunta.");
-    }
-
-    [TestMethod]
-    public async Task FallsBackToDetectionWhenTheSavedPathIsGone()
-    {
-        using var environment = new FirstRunEnvironment(hoopInstalled: true, hoopAuthenticated: true, saveDBeaverPath: false);
-        environment.DBeaver.DetectedPath = "C:\\DBeaver\\dbeaver.exe";
-
-        var readiness = await environment.Service.EvaluateReadinessAsync();
-
-        Assert.IsTrue(readiness.DBeaverLocated);
-        Assert.AreEqual(1, environment.DBeaver.LocateCalls);
+        Assert.IsFalse(readiness.IsReady);
+        Assert.AreEqual(2, readiness.FirstPendingStep);
     }
 
     [TestMethod]
     public async Task ReportsReadyOnlyWhenEverythingResolves()
     {
-        using var environment = new FirstRunEnvironment(hoopInstalled: true, hoopAuthenticated: true, saveDBeaverPath: true);
+        using var environment = new FirstRunEnvironment(hoopInstalled: true, hoopAuthenticated: true);
 
         var readiness = await environment.Service.EvaluateReadinessAsync();
 
         Assert.IsTrue(readiness.IsReady);
-        Assert.AreEqual(5, readiness.FirstPendingStep);
+        Assert.AreEqual(4, readiness.FirstPendingStep);
     }
 
     private sealed class FirstRunEnvironment : IDisposable
@@ -101,43 +96,22 @@ public sealed class FirstRunServiceTests
         private readonly string _directory;
 
         public FirstRunService Service { get; }
-        public FakeDBeaverService DBeaver { get; } = new();
 
-        public FirstRunEnvironment(bool hoopInstalled, bool hoopAuthenticated, bool saveDBeaverPath = false)
+        public FirstRunEnvironment(bool hoopInstalled, bool hoopAuthenticated)
         {
             _directory = Path.Combine(Path.GetTempPath(), "dev-access-firstrun", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_directory);
 
             var settings = new SettingsService(_directory);
-            if (saveDBeaverPath)
-            {
-                var executable = Path.Combine(_directory, "dbeaver.exe");
-                File.WriteAllBytes(executable, []);
-                settings.SaveAsync(new ApplicationSettings { DBeaverExecutablePath = executable }).GetAwaiter().GetResult();
-            }
+            settings.SaveAsync(new ApplicationSettings()).GetAwaiter().GetResult();
 
-            Service = new FirstRunService(settings, new FakeHoopService(hoopInstalled, hoopAuthenticated), DBeaver);
+            Service = new FirstRunService(settings, new FakeHoopService(hoopInstalled, hoopAuthenticated));
         }
 
         public void Dispose()
         {
             if (Directory.Exists(_directory)) Directory.Delete(_directory, true);
         }
-    }
-
-    private sealed class FakeDBeaverService : IDBeaverService
-    {
-        public int LocateCalls { get; private set; }
-        public string? DetectedPath { get; set; }
-
-        public Task<string?> LocateAsync(CancellationToken cancellationToken = default)
-        {
-            LocateCalls++;
-            return Task.FromResult(DetectedPath);
-        }
-
-        public Task<bool> OpenConnectionAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken = default) => Task.FromResult(true);
-        public Task<bool> UpdateConnectionConfigurationAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken = default) => Task.FromResult(true);
     }
 
     private sealed class FakeHoopService(bool installed, bool authenticated) : IHoopService

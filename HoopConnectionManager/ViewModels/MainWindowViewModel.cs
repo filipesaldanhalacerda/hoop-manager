@@ -225,13 +225,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
             case NotificationAction.OpenSettings:
                 _navigationService.NavigateTo<SettingsViewModel>();
                 break;
-            case NotificationAction.SelectDBeaver:
-                _navigationService.NavigateTo<SettingsViewModel>();
-                if (_navigationService.CurrentViewModel is SettingsViewModel settings)
-                {
-                    settings.BrowseDBeaverExecutableCommand.Execute(null);
-                }
-                break;
         }
     }
 
@@ -257,7 +250,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
             NotificationActionLabel = notification.Action switch
             {
                 NotificationAction.Reauthenticate => "Autenticar novamente",
-                NotificationAction.SelectDBeaver => "Selecionar DBeaver",
                 NotificationAction.OpenSettings => "Abrir configurações",
                 NotificationAction.OpenGuidedSetup => "Abrir configuração",
                 _ => string.Empty

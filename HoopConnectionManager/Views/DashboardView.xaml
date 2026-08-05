@@ -136,7 +136,7 @@
                         </Border>
                     </StackPanel>
                     <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Content="Dados" ToolTip="Ver e copiar os dados para criar a conexão no DBeaver"
+                        <Button Content="Dados" ToolTip="Ver e copiar os dados para criar a conexão no seu gerenciador de banco"
                                 Command="{Binding DataContext.ShowConnectionGuideCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
                                 Style="{StaticResource SecondaryButton}" Padding="11,7" Margin="0,0,6,0" />
@@ -594,37 +594,37 @@
                                 </StackPanel>
                             </Border>
 
-                            <TextBlock Text="PRIMEIRA VEZ NO DBEAVER" Style="{StaticResource EyebrowText}" Margin="2,20,0,12" />
+                            <TextBlock Text="CRIANDO A CONEXÃO PELA PRIMEIRA VEZ" Style="{StaticResource EyebrowText}" Margin="2,20,0,12" />
 
                             <Grid Margin="2,0,0,10">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource GuideStepBadge}"><TextBlock Text="1" Style="{StaticResource GuideStepNumber}" /></Border>
                                 <TextBlock Grid.Column="1" Style="{StaticResource GuideStepText}"
-                                           Text="No DBeaver, abra Database › New Database Connection e escolha PostgreSQL." />
+                                           Text="No seu gerenciador de banco, crie uma conexão PostgreSQL." />
                             </Grid>
                             <Grid Margin="2,0,0,10">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource GuideStepBadge}"><TextBlock Text="2" Style="{StaticResource GuideStepNumber}" /></Border>
                                 <TextBlock Grid.Column="1" Style="{StaticResource GuideStepText}"
-                                           Text="Preencha Host, Porta, Database e Usuário com os valores acima." />
+                                           Text="Preencha host, porta, database e usuário com os valores acima — ou cole a URL JDBC, se o cliente aceitar." />
                             </Grid>
                             <Grid Margin="2,0,0,10">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource GuideStepBadge}"><TextBlock Text="3" Style="{StaticResource GuideStepNumber}" /></Border>
                                 <TextBlock Grid.Column="1" Style="{StaticResource GuideStepText}"
-                                           Text="Cole a senha e deixe &quot;Save password&quot; desmarcado — ela vale só enquanto este túnel existir." />
+                                           Text="Cole a senha e não deixe o cliente salvá-la — ela vale só enquanto este túnel existir." />
                             </Grid>
                             <Grid Margin="2,0,0,10">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource GuideStepBadge}"><TextBlock Text="4" Style="{StaticResource GuideStepNumber}" /></Border>
                                 <TextBlock Grid.Column="1" Style="{StaticResource GuideStepText}"
-                                           Text="Marque &quot;Show all databases&quot; para navegar os demais bancos do servidor." />
+                                           Text="Se o cliente oferecer, habilite a listagem de todos os bancos para navegar os demais do servidor." />
                             </Grid>
                             <Grid Margin="2,0,0,0">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource GuideStepBadge}"><TextBlock Text="5" Style="{StaticResource GuideStepNumber}" /></Border>
                                 <TextBlock Grid.Column="1" Style="{StaticResource GuideStepText}"
-                                           Text="Use Test Connection para confirmar e conclua em Finish." />
+                                           Text="Teste a conexão e salve. Nas próximas vezes, basta atualizar a porta e a senha." />
                             </Grid>
 
                             <Border Background="{DynamicResource WarningSurfaceBrush}" BorderBrush="{DynamicResource WarningBrush}"
@@ -634,7 +634,7 @@
                                     <TextBlock Text="&#xE7BA;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource WarningBrush}"
                                                FontSize="14" VerticalAlignment="Top" Margin="0,1,10,0" />
                                     <TextBlock Grid.Column="1" Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" FontSize="11" LineHeight="17"
-                                               Text="A porta e a senha valem apenas para este túnel: ao reconectar, confira os dados aqui antes de usar a conexão salva. O database mostrado é o banco de manutenção padrão — se o seu recurso usar outro, ajuste no DBeaver." />
+                                               Text="A porta e a senha valem apenas para este túnel: ao reconectar, confira os dados aqui antes de usar a conexão salva. O database mostrado é o banco de manutenção padrão — se o seu recurso usar outro, ajuste no seu gerenciador." />
                                 </Grid>
                             </Border>
                         </StackPanel>

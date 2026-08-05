@@ -6,24 +6,27 @@ Aplicativo WPF para instalar, autenticar e operar exclusivamente o `hoop.exe` of
 
 1. Execute o wizard e valide a instalação existente ou selecione um instalador oficial `.ps1`, `.cmd` ou `.bat`.
 2. Faça login pelo comando `hoop login` e conclua a autenticação no navegador.
-3. Carregue as conexões, conecte e copie os dados temporários para o DBeaver.
-4. Desconecte pelo Dashboard ou encerre o aplicativo para finalizar todos os túneis.
+3. Carregue as conexões e conecte. Em **Dados**, copie host, porta, database, usuário, senha ou a URL JDBC.
+4. Cole no gerenciador de banco de sua preferência.
+5. Desconecte pelo Dashboard ou encerre o aplicativo para finalizar todos os túneis.
 
-Senhas e tokens não são gravados. O aplicativo não altera arquivos internos do DBeaver. Configurações não secretas e logs sanitizados ficam sob `%LocalAppData%\Hoop Connection Manager`.
+## Escopo
 
-Quando o DBeaver já está aberto, a conexão é encaminhada para a janela existente — nenhuma janela adicional é criada.
+O aplicativo cuida do túnel e entrega os dados da conexão. **Ele não inicia nem configura nenhum cliente de banco** — a escolha da ferramenta é do desenvolvedor, e o aplicativo não toca em arquivos de cliente algum.
+
+A abertura automática do DBeaver existiu e foi removida: ela dependia de cada instalação cooperar com o encaminhamento de linha de comando, e as variações (instalador tradicional, pacote MSIX da Microsoft Store) produziam janelas duplicadas e conexões que não chegavam ao destino.
+
+Cada túnel recebe uma porta local exclusiva a partir da 5433. **Porta e senha mudam a cada túnel**, então uma conexão salva no cliente precisa ser conferida a cada sessão.
 
 ## Segurança
 
 | Dado | Onde vive | Por quanto tempo |
 | --- | --- | --- |
-| Senha temporária do túnel | Memória do processo e linha de comando do launcher do DBeaver | Enquanto o túnel existir |
+| Senha temporária do túnel | Memória do processo, e na área de transferência quando copiada | Enquanto o túnel existir |
 | Token do Hoop | Gerenciado pelo próprio Hoop CLI | Fora do escopo deste aplicativo |
 | Configurações e histórico | `%LocalAppData%\Hoop Connection Manager` | Até o usuário limpar |
 
-**Risco aceito:** a senha temporária é passada ao DBeaver pela linha de comando (`-con ...|password=...`), que é a única interface oferecida pelo DBeaver para abrir uma conexão pronta. Durante os poucos segundos em que o launcher existe, qualquer processo do mesmo usuário consegue lê-la via `Win32_Process`, e agentes de EDR costumam registrar linhas de comando. O impacto é limitado porque a senha vale apenas para o túnel corrente, é descartada com ele e `savePassword=false` impede que o DBeaver a grave em disco.
-
-A senha copiada para a área de transferência é removida automaticamente após 30 segundos.
+Senhas e tokens não são gravados em disco pelo aplicativo. A senha copiada para a área de transferência é removida automaticamente após 30 segundos. Configurações não secretas e logs sanitizados ficam sob `%LocalAppData%\Hoop Connection Manager`.
 
 ## Diagnóstico
 

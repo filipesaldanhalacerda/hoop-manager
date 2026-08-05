@@ -18,7 +18,6 @@ public sealed partial class DashboardViewModel : ObservableObject
 {
     private readonly IHoopService _hoopService;
     private readonly IConnectionService _connectionService;
-    private readonly IDBeaverService _dbeaverService;
     private readonly ISettingsService _settingsService;
     private readonly INotificationService _notificationService;
     private readonly ILoggerService _logger;
@@ -98,7 +97,6 @@ public sealed partial class DashboardViewModel : ObservableObject
     public DashboardViewModel(
         IHoopService hoopService,
         IConnectionService connectionService,
-        IDBeaverService dbeaverService,
         ISettingsService settingsService,
         INotificationService notificationService,
         ILoggerService logger,
@@ -108,7 +106,6 @@ public sealed partial class DashboardViewModel : ObservableObject
     {
         _hoopService = hoopService;
         _connectionService = connectionService;
-        _dbeaverService = dbeaverService;
         _settingsService = settingsService;
         _notificationService = notificationService;
         _logger = logger;
@@ -147,7 +144,7 @@ public sealed partial class DashboardViewModel : ObservableObject
                 SynchronizeActiveConnections();
                 if (e.TunnelRecreated)
                 {
-                    _ = UpdateDBeaverAfterReconnectionAsync(e.ConnectionName);
+                    AnnounceRecreatedTunnel(e.ConnectionName);
                 }
             });
         };
@@ -179,7 +176,7 @@ public sealed partial class DashboardViewModel : ObservableObject
 
     /// <summary>
     /// Mantém a faixa de configuração pendente em dia. Enquanto o Hoop, a sessão ou o
-    /// DBeaver estiverem faltando, o dev continua tendo um caminho de volta ao assistente.
+    /// a sessão estiverem faltando, o dev continua tendo um caminho de volta ao assistente.
     /// </summary>
     private async Task RefreshEnvironmentReadinessAsync()
     {
@@ -205,10 +202,14 @@ public sealed partial class DashboardViewModel : ObservableObject
         }
     }
 
-    private async Task UpdateDBeaverAfterReconnectionAsync(string connectionName)
+    /// <summary>
+    /// Um túnel recriado recebe porta e senha novas, então o que estiver configurado no
+    /// gerenciador de banco deixa de valer. Como o aplicativo não mexe em cliente nenhum,
+    /// avisar é tudo o que ele pode — e é justamente o que evita a sessão "morta".
+    /// </summary>
+    private void AnnounceRecreatedTunnel(string connectionName)
     {
-        if (!_settingsService.Load().OpenDBeaverAutomatically
-            || !_connectionService.ActiveTunnels.TryGetValue(connectionName, out var tunnel)
+        if (!_connectionService.ActiveTunnels.TryGetValue(connectionName, out var tunnel)
             || tunnel.Credentials is null)
         {
             return;
@@ -216,40 +217,13 @@ public sealed partial class DashboardViewModel : ObservableObject
 
         var connection = Connections.FirstOrDefault(item =>
             string.Equals(item.Name, connectionName, StringComparison.OrdinalIgnoreCase));
-        try
-        {
-            var synchronized = await _dbeaverService.UpdateConnectionConfigurationAsync(new DBeaverConnectionInfo
-            {
-                ConnectionId = connection?.Id ?? connectionName,
-                // O DBeaver recebe o rótulo curto: o nome completo do Hoop passa de
-                // cinquenta caracteres e fica ilegível na árvore de conexões.
-                ConnectionName = connection?.DisplayName ?? connectionName,
-                Host = tunnel.Credentials.Host,
-                Port = tunnel.Credentials.Port,
-                Username = tunnel.Credentials.Username,
-                Password = tunnel.Credentials.Password
-            });
 
-            if (synchronized)
-            {
-                _logger.LogInformation($"DBeaver sincronizado após a recriação do túnel '{connectionName}'.");
-                return;
-            }
-
-            // A porta e a senha mudam a cada túnel: sem confirmação, o DBeaver ficou
-            // com dados que não conectam mais e o usuário precisa saber disso.
-            _logger.LogWarning($"O túnel '{connectionName}' foi recuperado, mas o DBeaver não confirmou a nova porta/senha.");
-            _notificationService.Show(
-                "Túnel recuperado, mas o DBeaver não confirmou a nova porta/senha. Abra a conexão novamente.",
-                NotificationLevel.Warning);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning($"O túnel '{connectionName}' foi recuperado, mas o DBeaver não pôde ser atualizado: {ex.Message}");
-            _notificationService.Show(
-                "Túnel recuperado, mas o DBeaver não recebeu a nova porta/senha. Abra a conexão novamente.",
-                NotificationLevel.Warning);
-        }
+        _logger.LogInformation(
+            $"Túnel '{connectionName}' recriado na porta {tunnel.Credentials.Port}; os dados anteriores não valem mais.");
+        _notificationService.Show(
+            $"Conexão de '{connection?.DisplayName ?? connectionName}' restabelecida na porta {tunnel.Credentials.Port} " +
+            "com uma nova senha. Copie os dados novamente em Dados.",
+            NotificationLevel.Warning);
     }
 
     private void ConfigureConnectionsRefresh(bool enabled)
@@ -427,47 +401,15 @@ public sealed partial class DashboardViewModel : ObservableObject
                     NotificationLevel.Information);
             }
 
-            if (tunnel.Credentials is not null && _settingsService.Load().OpenDBeaverAutomatically)
+            if (tunnel.Credentials is not null)
             {
-                try
-                {
-                    var opened = await _dbeaverService.OpenConnectionAsync(new DBeaverConnectionInfo
-                    {
-                        ConnectionId = connection.Id,
-                        ConnectionName = connection.DisplayName,
-                        Host = tunnel.Credentials.Host,
-                        Port = tunnel.Credentials.Port,
-                        Username = tunnel.Credentials.Username,
-                        Password = tunnel.Credentials.Password
-                    });
-
-                    if (!opened)
-                    {
-                        // O túnel está de pé; só a entrega ao DBeaver não foi confirmada.
-                        // Sem este aviso o usuário só descobria abrindo o arquivo de log.
-                        _notificationService.Show(
-                            $"Túnel de '{connection.DisplayName}' ativo na porta {tunnel.Credentials.Port}, " +
-                            "mas o DBeaver não confirmou o recebimento. Copie os dados da conexão e abra manualmente.",
-                            NotificationLevel.Warning);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Qualquer falha aqui era anunciada como "DBeaver não encontrado", mesmo
-                    // quando a causa era outra — um dado inválido na conexão, por exemplo.
-                    // A mensagem errada manda o usuário procurar o executável à toa e esconde
-                    // o motivo real, que é justamente o que se precisa para diagnosticar.
-                    _logger.LogWarning(
-                        $"Túnel conectado, mas o DBeaver não abriu a conexão '{connection.Name}': " +
-                        $"{ex.GetType().Name} — {ex.Message}");
-                    var notFound = ex.Message.Contains("não encontrado", StringComparison.OrdinalIgnoreCase);
-                    _notificationService.Show(
-                        notFound
-                            ? "DBeaver não encontrado — selecione o executável nas Configurações. O túnel continua conectado."
-                            : $"O túnel está ativo, mas o DBeaver não abriu a conexão: {ex.Message}",
-                        NotificationLevel.Warning,
-                        notFound ? NotificationAction.SelectDBeaver : NotificationAction.None);
-                }
+                // O aplicativo entrega os dados e sai do caminho: quem escolhe o cliente
+                // de banco é o desenvolvedor. Abrir o cliente automaticamente dependia de
+                // cada instalação cooperar, e era exatamente aí que quebrava.
+                _notificationService.Show(
+                    $"'{connection.DisplayName}' conectado na porta {tunnel.Credentials.Port}. " +
+                    "Use Dados para copiar host, porta, usuário e senha.",
+                    NotificationLevel.Information);
             }
         }
         catch (Exception ex)
@@ -498,7 +440,7 @@ public sealed partial class DashboardViewModel : ObservableObject
             connection.ConnectedAt = null;
             connection.Status = ConnectionStatus.Disconnected;
             SynchronizeActiveConnections();
-            _notificationService.Show($"Túnel de '{connection.DisplayName}' encerrado e porta local fechada. O DBeaver atualizará o estado na próxima operação.");
+            _notificationService.Show($"Túnel de '{connection.DisplayName}' encerrado e porta local fechada.");
         }
         catch (Exception ex)
         {
@@ -597,7 +539,7 @@ public sealed partial class DashboardViewModel : ObservableObject
     [RelayCommand]
     private void CopyPassword(ConnectionViewModel? connection) => CopyTemporary(connection?.Password, "Senha", containsSecret: true);
 
-    /// <summary>Bloco completo para quem vai montar a conexão à mão no DBeaver.</summary>
+    /// <summary>Bloco completo para montar a conexão à mão em qualquer gerenciador.</summary>
     [RelayCommand]
     private void CopyConnectionSummary(ConnectionViewModel? connection) =>
         CopyTemporary(connection?.ConnectionSummary, "Dados da conexão", containsSecret: true);

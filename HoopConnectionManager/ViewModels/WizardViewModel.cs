@@ -11,11 +11,9 @@ public sealed partial class WizardViewModel : ObservableObject
 {
     private readonly IHoopService _hoopService;
     private readonly ILoginService _loginService;
-    private readonly IDBeaverService _dbeaverService;
     private readonly INavigationService _navigationService;
     private readonly INotificationService _notificationService;
     private readonly IFirstRunService _firstRunService;
-    private readonly ISettingsService _settingsService;
     private readonly ILoggerService _logger;
 
     [ObservableProperty]
@@ -28,30 +26,21 @@ public sealed partial class WizardViewModel : ObservableObject
     private string _statusMessage = "Clique em Verificar Instalação para localizar o Hoop.";
 
     [ObservableProperty]
-    private string? _dbeaverPath;
-
-    [ObservableProperty]
     private bool _connectionsLoaded;
-
-    public IReadOnlyList<string> DiscoveredConnectionGroups { get; } = [];
 
     public WizardViewModel(
         IHoopService hoopService,
         ILoginService loginService,
-        IDBeaverService dbeaverService,
         INavigationService navigationService,
         INotificationService notificationService,
         IFirstRunService firstRunService,
-        ISettingsService settingsService,
         ILoggerService logger)
     {
         _hoopService = hoopService;
         _loginService = loginService;
-        _dbeaverService = dbeaverService;
         _navigationService = navigationService;
         _notificationService = notificationService;
         _firstRunService = firstRunService;
-        _settingsService = settingsService;
         _logger = logger;
     }
 
@@ -153,44 +142,6 @@ public sealed partial class WizardViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task CheckDBeaverAsync()
-    {
-        DbeaverPath = await _dbeaverService.LocateAsync();
-        if (DbeaverPath is not null)
-        {
-            CurrentStep = 5;
-        }
-        else
-        {
-            _notificationService.Show(
-                "DBeaver não encontrado — selecione o executável para continuar.",
-                NotificationLevel.Warning,
-                NotificationAction.SelectDBeaver);
-        }
-    }
-
-    [RelayCommand]
-    private async Task BrowseDBeaverAsync()
-    {
-        var dialog = new Microsoft.Win32.OpenFileDialog
-        {
-            Title = "Selecione o executável do DBeaver",
-            Filter = "DBeaver (dbeaver.exe)|dbeaver.exe|Executáveis (*.exe)|*.exe",
-            CheckFileExists = true
-        };
-
-        if (dialog.ShowDialog() != true)
-        {
-            return;
-        }
-
-        DbeaverPath = dialog.FileName;
-        await _settingsService.UpdateAsync(settings => settings.DBeaverExecutablePath = DbeaverPath);
-        _notificationService.Show("DBeaver localizado com sucesso.");
-        CurrentStep = 5;
-    }
-
-    [RelayCommand]
     private async Task LoadConnectionsAsync()
     {
         IsBusy = true;
@@ -208,7 +159,7 @@ public sealed partial class WizardViewModel : ObservableObject
                 .ToList();
 
             _notificationService.Show($"Conexões encontradas: {string.Join(", ", groups)}");
-            CurrentStep = 4;
+            CurrentStep = 4; // Concluído
         }
         catch (Exception ex)
         {
