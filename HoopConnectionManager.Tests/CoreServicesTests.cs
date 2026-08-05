@@ -65,6 +65,49 @@ public sealed class SettingsTests
         }
         finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
     }
+
+    /// <summary>
+    /// Load() passou a manter as configurações em memória para não reler o arquivo a
+    /// cada consulta; uma gravação feita fora desta instância ainda precisa ser vista.
+    /// </summary>
+    [TestMethod]
+    public async Task ReloadsWhenTheFileChangesOutsideTheInstance()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "hoop-manager-tests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var reader = new SettingsService(directory);
+            var writer = new SettingsService(directory);
+
+            await writer.SaveAsync(new() { Theme = "Dark" });
+            Assert.AreEqual("Dark", reader.Load().Theme);
+
+            await writer.SaveAsync(new() { Theme = "Light" });
+            Assert.AreEqual("Light", reader.Load().Theme);
+        }
+        finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+    }
+
+    /// <summary>O cache não pode ser entregue por referência: quem chama pode alterá-lo.</summary>
+    [TestMethod]
+    public async Task DoesNotLetCallersMutateTheCachedInstance()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "hoop-manager-tests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var service = new SettingsService(directory);
+            await service.SaveAsync(new() { Theme = "Dark", FavoriteConnectionIds = ["dev"] });
+
+            var first = service.Load();
+            first.Theme = "Light";
+            first.FavoriteConnectionIds.Add("prd");
+
+            var second = service.Load();
+            Assert.AreEqual("Dark", second.Theme);
+            CollectionAssert.DoesNotContain(second.FavoriteConnectionIds, "prd");
+        }
+        finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+    }
 }
 
 [TestClass]

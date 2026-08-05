@@ -23,6 +23,12 @@ public sealed class HoopService : IHoopService
     private readonly object _portLock = new();
     private readonly HashSet<int> _reservedPorts = [];
     private bool? _supportsUserInfo;
+    // A detecção roda antes de praticamente todo comando; sem cache, cada consulta
+    // de status do dashboard e cada ciclo do monitor de saúde iniciava um processo.
+    private static readonly TimeSpan InstallationCacheDuration = TimeSpan.FromMinutes(5);
+    private readonly SemaphoreSlim _installationLock = new(1, 1);
+    private string? _validatedExecutablePath;
+    private long _validatedAtTicks;
 
     public string? ExecutablePath { get; private set; }
 
@@ -41,29 +47,78 @@ public sealed class HoopService : IHoopService
 
     public async Task<bool> IsInstalledAsync(CancellationToken cancellationToken = default)
     {
-        var settings = _settingsService.Load();
-
-        if (!string.IsNullOrWhiteSpace(settings.HoopExecutablePath) && File.Exists(settings.HoopExecutablePath))
+        await _installationLock.WaitAsync(cancellationToken);
+        try
         {
-            ExecutablePath = settings.HoopExecutablePath;
-            if (await CanExecuteAsync(cancellationToken))
+            var settings = _settingsService.Load();
+
+            if (TryUseValidatedExecutable(settings.HoopExecutablePath))
             {
                 return true;
             }
-        }
 
-        foreach (var candidate in await FindExecutableCandidatesAsync(cancellationToken))
-        {
-            ExecutablePath = candidate;
-            if (await CanExecuteAsync(cancellationToken))
+            if (!string.IsNullOrWhiteSpace(settings.HoopExecutablePath) && File.Exists(settings.HoopExecutablePath))
             {
-                await _settingsService.UpdateAsync(value => value.HoopExecutablePath = ExecutablePath, cancellationToken);
-                return true;
+                ExecutablePath = settings.HoopExecutablePath;
+                if (await CanExecuteAsync(cancellationToken))
+                {
+                    MarkExecutableValidated();
+                    return true;
+                }
             }
+
+            foreach (var candidate in await FindExecutableCandidatesAsync(cancellationToken))
+            {
+                ExecutablePath = candidate;
+                if (await CanExecuteAsync(cancellationToken))
+                {
+                    await _settingsService.UpdateAsync(value => value.HoopExecutablePath = ExecutablePath, cancellationToken);
+                    MarkExecutableValidated();
+                    return true;
+                }
+            }
+
+            ExecutablePath = null;
+            _validatedExecutablePath = null;
+            return false;
+        }
+        finally
+        {
+            _installationLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Reaproveita a última validação enquanto o executável continuar no lugar e as
+    /// configurações não apontarem para outro caminho.
+    /// </summary>
+    private bool TryUseValidatedExecutable(string configuredPath)
+    {
+        if (_validatedExecutablePath is null
+            || Environment.TickCount64 - _validatedAtTicks > InstallationCacheDuration.TotalMilliseconds)
+        {
+            return false;
         }
 
-        ExecutablePath = null;
-        return false;
+        if (!string.IsNullOrWhiteSpace(configuredPath)
+            && !string.Equals(configuredPath, _validatedExecutablePath, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (!File.Exists(_validatedExecutablePath))
+        {
+            return false;
+        }
+
+        ExecutablePath = _validatedExecutablePath;
+        return true;
+    }
+
+    private void MarkExecutableValidated()
+    {
+        _validatedExecutablePath = ExecutablePath;
+        _validatedAtTicks = Environment.TickCount64;
     }
 
     public async Task<bool> IsAuthenticatedAsync(CancellationToken cancellationToken = default)
@@ -424,21 +479,30 @@ public sealed class HoopService : IHoopService
             return new(GlobalConnectivityState.HoopDisconnected, "O executável Hoop CLI não foi localizado.");
         }
 
-        var result = await RunAsync("admin get userinfo", cancellationToken: cancellationToken, logFailure: false);
-        if (result.Success)
+        var diagnostic = string.Empty;
+
+        if (_supportsUserInfo is not false)
         {
-            return new(GlobalConnectivityState.Online, "Rede, gateway e autenticação estão operacionais.");
+            var userInfo = await RunAsync("admin get userinfo", cancellationToken: cancellationToken, logFailure: false);
+            if (userInfo.Success)
+            {
+                _supportsUserInfo = true;
+                return new(GlobalConnectivityState.Online, "Rede, gateway e autenticação estão operacionais.");
+            }
+
+            DisableUserInfoWhenUnsupported(userInfo);
+            diagnostic = $"{userInfo.StandardError} {userInfo.StandardOutput}";
         }
 
-        var diagnostic = $"{result.StandardError} {result.StandardOutput}";
-        if (diagnostic.Contains("unknown command", StringComparison.OrdinalIgnoreCase))
+        // Versões sem `admin get userinfo` confirmam a sessão pelo catálogo.
+        if (_supportsUserInfo is false)
         {
-            result = await RunAsync("admin get connections", cancellationToken: cancellationToken, logFailure: false);
-            if (result.Success)
+            var catalog = await RunAsync("admin get connections", cancellationToken: cancellationToken, logFailure: false);
+            if (catalog.Success)
             {
                 return new(GlobalConnectivityState.Online, "Gateway e sessão Hoop estão operacionais.");
             }
-            diagnostic = $"{result.StandardError} {result.StandardOutput}";
+            diagnostic = $"{catalog.StandardError} {catalog.StandardOutput}";
         }
 
         if (ContainsAny(diagnostic, "unauthorized", "unauthenticated", "authentication required", "token expired", "expired token", "login required", "please login", "not logged in", "invalid token", "status 401", "status 403"))
@@ -512,9 +576,19 @@ public sealed class HoopService : IHoopService
         }
     }
 
+    /// <summary>
+    /// Registra o encerramento do túnel. O tempo de vida do túnel é o tempo de vida do
+    /// processo `hoop connect`, que <see cref="ActiveTunnel.StopAsync"/> já encerrou junto
+    /// com toda a árvore antes desta chamada; não há comando remoto envolvido.
+    /// </summary>
+    /// <remarks>
+    /// Se a versão corporativa do CLI passar a expor um encerramento explícito de sessão
+    /// no gateway, é aqui que ele entra — o restante do fluxo não muda.
+    /// </remarks>
     public Task DisconnectAsync(string connectionName)
     {
-        _logger.LogInformation($"Solicitação de desconexão do túnel '{connectionName}'.");
+        _logger.LogInformation(
+            $"Túnel '{connectionName}' encerrado localmente com o processo Hoop; o gateway libera a sessão em seguida.");
         return Task.CompletedTask;
     }
 
