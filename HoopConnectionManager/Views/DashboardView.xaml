@@ -121,11 +121,11 @@
                         <Button Content="Dados da conexão" ToolTip="Ver e copiar host, porta, database, usuário e senha"
                                 Command="{Binding DataContext.ShowConnectionGuideCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
-                                Style="{StaticResource SecondaryButton}" Padding="14,7" Margin="0,0,6,0" />
+                                Style="{StaticResource RowActionButton}" Margin="0,0,8,0" />
                         <Button Content="Desconectar" ToolTip="Encerrar este túnel"
                                 Command="{Binding DataContext.DisconnectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
-                                Style="{StaticResource DangerButton}" Padding="11,7" />
+                                Style="{StaticResource RowDangerActionButton}" />
                     </StackPanel>
                 </Grid>
             </Border>
@@ -168,19 +168,20 @@
                                    FontFamily="Consolas" />
                     </StackPanel>
                     <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Content="Conectar"
+                        <!-- Conectar é a ação principal desta lista, então vem preenchida;
+                             antes usava o estilo de apoio e competia com o Desconectar. -->
+                        <Button Content="Conectar" ToolTip="Abrir um túnel local para este banco"
                                 Command="{Binding DataContext.ConnectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
                                 IsEnabled="{Binding CanConnect}"
                                 Visibility="{Binding CanConnect, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                Style="{StaticResource SecondaryButton}"
-                                Margin="0,0,6,0" />
-                        <Button Content="Desconectar"
+                                Style="{StaticResource RowActionButton}" />
+                        <Button Content="Desconectar" ToolTip="Encerrar este túnel"
                                 Command="{Binding DataContext.DisconnectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
                                 IsEnabled="{Binding CanDisconnect}"
                                 Visibility="{Binding CanDisconnect, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                Style="{StaticResource DangerButton}" />
+                                Style="{StaticResource RowDangerActionButton}" />
                     </StackPanel>
                 </Grid>
             </Border>
@@ -588,13 +589,13 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource GuideStepBadge}"><TextBlock Text="2" Style="{StaticResource GuideStepNumber}" /></Border>
                                 <TextBlock Grid.Column="1" Style="{StaticResource GuideStepText}"
-                                           Text="Preencha host, porta, database e usuário com os valores acima — ou cole a URL JDBC, se o cliente aceitar." />
+                                           Text="Preencha host, porta, database e usuário com os valores acima. Se o cliente aceitar URL JDBC, cole a URL e pule este passo." />
                             </Grid>
                             <Grid Margin="2,0,0,10">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource GuideStepBadge}"><TextBlock Text="3" Style="{StaticResource GuideStepNumber}" /></Border>
                                 <TextBlock Grid.Column="1" Style="{StaticResource GuideStepText}"
-                                           Text="Cole a senha e não deixe o cliente salvá-la — ela vale só enquanto este túnel existir." />
+                                           Text="Cole a senha e não deixe o cliente salvá-la, porque ela vale apenas enquanto este túnel existir." />
                             </Grid>
                             <Grid Margin="2,0,0,10">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -616,7 +617,7 @@
                                     <TextBlock Text="&#xE7BA;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource WarningBrush}"
                                                FontSize="14" VerticalAlignment="Top" Margin="0,1,10,0" />
                                     <TextBlock Grid.Column="1" Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" FontSize="11" LineHeight="17"
-                                               Text="A porta e a senha valem apenas para este túnel: ao reconectar, confira os dados aqui antes de usar a conexão salva. O database mostrado é o banco de manutenção padrão — se o seu recurso usar outro, ajuste no seu gerenciador." />
+                                               Text="A porta e a senha valem apenas para este túnel. Ao reconectar, confira os dados aqui antes de usar a conexão salva. O database mostrado é o banco de manutenção padrão; se o seu recurso usar outro, ajuste no seu gerenciador." />
                                 </Grid>
                             </Border>
                         </StackPanel>

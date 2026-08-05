@@ -397,7 +397,7 @@ public sealed partial class DashboardViewModel : ObservableObject
             if (tunnel.UsedAlternativePort && tunnel.Credentials is not null)
             {
                 _notificationService.Show(
-                    $"Porta local 5433 ocupada — escolhendo automaticamente a porta {tunnel.Credentials.Port}.",
+                    $"A porta local 5433 estava ocupada. Este túnel usa a porta {tunnel.Credentials.Port}.",
                     NotificationLevel.Information);
             }
 
@@ -472,7 +472,7 @@ public sealed partial class DashboardViewModel : ObservableObject
         if (ContainsAny(message, "unauthorized", "unauthenticated", "token", "login", "sessão", "autentica"))
         {
             _notificationService.Show(
-                "Sessão expirada — autentique novamente para continuar.",
+                "Sessão expirada. Autentique novamente para continuar.",
                 NotificationLevel.Warning,
                 NotificationAction.Reauthenticate);
             return;
@@ -481,7 +481,7 @@ public sealed partial class DashboardViewModel : ObservableObject
         if (ContainsAny(message, "gateway", "vpn", "network", "rede", "timeout", "timed out", "unavailable", "connection refused"))
         {
             _notificationService.Show(
-                "Gateway inacessível — confira a VPN e a rede corporativa. O sistema tentará novamente automaticamente.",
+                "Gateway inacessível. Confira a VPN e a rede corporativa; o sistema continua tentando.",
                 NotificationLevel.Error,
                 NotificationAction.OpenSettings);
             return;

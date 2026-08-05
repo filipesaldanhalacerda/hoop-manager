@@ -90,6 +90,29 @@
         <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}" />
     </Style>
 
+    <!-- Ações dentro das listas. Compartilham altura e largura mínima para que a coluna
+         de ações fique alinhada de uma linha para a outra, independentemente do rótulo:
+         antes cada botão trazia o próprio Padding e as bordas ficavam irregulares.
+         A hierarquia segue a do restante do aplicativo: ação principal preenchida,
+         apoio contornado, destrutiva em vermelho suave. -->
+    <Style x:Key="RowActionButton" TargetType="Button" BasedOn="{StaticResource FluentButton}">
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="MinWidth" Value="132" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style x:Key="RowSecondaryActionButton" TargetType="Button" BasedOn="{StaticResource RowActionButton}">
+        <Setter Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    </Style>
+
+    <Style x:Key="RowDangerActionButton" TargetType="Button" BasedOn="{StaticResource RowActionButton}">
+        <Setter Property="Background" Value="{DynamicResource ErrorSurfaceBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}" />
+    </Style>
+
     <Style x:Key="NavigationButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
