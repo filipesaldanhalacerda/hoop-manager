@@ -1,10 +1,18 @@
+using HoopConnectionManager.Models;
+
 namespace HoopConnectionManager.Services.Abstractions;
 
 /// <summary>
-/// Determina se o assistente de primeira execução deve ser exibido.
+/// Controla o assistente de configuração e responde se o ambiente está operacional.
 /// </summary>
 public interface IFirstRunService
 {
     bool ShouldShowWizard();
     Task CompleteWizardAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Verifica o estado real da máquina: Hoop localizado, sessão válida e DBeaver
+    /// localizado. É o que mantém a configuração guiada acessível depois da primeira vez.
+    /// </summary>
+    Task<EnvironmentReadiness> EvaluateReadinessAsync(CancellationToken cancellationToken = default);
 }

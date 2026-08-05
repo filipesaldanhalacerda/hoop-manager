@@ -18,6 +18,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly ILoggerService _logger;
     private readonly IHoopService _hoopService;
     private readonly ILoginService _loginService;
+    private readonly INavigationService _navigationService;
     private CancellationTokenSource? _themeSaveCancellation;
 
     [ObservableProperty]
@@ -52,6 +53,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _hoopGateway = "Verificando...";
     [ObservableProperty] private string _hoopConfigurationSource = "Verificando...";
     [ObservableProperty] private string _hoopAuthenticationStatus = "Verificando...";
+
+    /// <summary>
+    /// Acompanha <see cref="HoopAuthenticationStatus"/>: a tela pintava o texto sempre
+    /// de verde, inclusive ao informar que a autenticação é necessária.
+    /// </summary>
+    [ObservableProperty] private bool _isHoopAuthenticated;
     [ObservableProperty] private string _hoopCompatibilityStatus = "Verificando...";
     [ObservableProperty] private bool _isHoopDiagnosticsBusy;
 
@@ -63,7 +70,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         INotificationService notificationService,
         ILoggerService logger,
         IHoopService hoopService,
-        ILoginService loginService)
+        ILoginService loginService,
+        INavigationService navigationService)
     {
         _settingsService = settingsService;
         _startupService = startupService;
@@ -71,8 +79,23 @@ public sealed partial class SettingsViewModel : ObservableObject
         _logger = logger;
         _hoopService = hoopService;
         _loginService = loginService;
+        _navigationService = navigationService;
         LoadSettings();
         _ = RefreshHoopDiagnosticsAsync();
+    }
+
+    /// <summary>
+    /// Reabre a configuração guiada a qualquer momento, já posicionada na primeira
+    /// etapa pendente. Antes, o assistente ficava inacessível após a primeira conclusão.
+    /// </summary>
+    [RelayCommand]
+    private void OpenGuidedSetup()
+    {
+        _navigationService.NavigateTo<WizardViewModel>();
+        if (_navigationService.CurrentViewModel is WizardViewModel wizard)
+        {
+            _ = wizard.PrepareAsync();
+        }
     }
 
     [RelayCommand]
@@ -90,6 +113,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             HoopVersion = diagnostics.Version;
             HoopGateway = diagnostics.GatewayUrl;
             HoopConfigurationSource = diagnostics.ConfigurationSource;
+            IsHoopAuthenticated = diagnostics.IsAuthenticated;
             HoopAuthenticationStatus = diagnostics.IsAuthenticated ? "Autenticado" : "Autenticação necessária";
             HoopCompatibilityStatus = diagnostics.SupportsVersionManager
                 ? "Compatível com sincronização de versão pelo gateway"
@@ -97,6 +121,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            IsHoopAuthenticated = false;
             HoopAuthenticationStatus = "Não foi possível verificar";
             HoopCompatibilityStatus = ex.Message;
             _logger.LogError(ex, "Falha ao obter diagnóstico seguro do Hoop.");

@@ -15,7 +15,12 @@ public enum NotificationAction
     None,
     Reauthenticate,
     OpenSettings,
-    SelectDBeaver
+    SelectDBeaver,
+    /// <summary>
+    /// Leva à configuração guiada. É a saída correta quando o ambiente sequer chegou
+    /// a ser montado — nesse estado, pedir nova autenticação não resolve nada.
+    /// </summary>
+    OpenGuidedSetup
 }
 
 /// <summary>

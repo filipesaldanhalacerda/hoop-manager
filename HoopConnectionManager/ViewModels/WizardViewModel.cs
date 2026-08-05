@@ -55,6 +55,36 @@ public sealed partial class WizardViewModel : ObservableObject
         _logger = logger;
     }
 
+    /// <summary>
+    /// Reposiciona o assistente na primeira etapa que ainda precisa de atenção.
+    /// Precisa ser chamado sempre que a tela é aberta: o ViewModel é singleton e
+    /// guardaria o passo da sessão anterior, que pode não refletir a máquina de agora.
+    /// </summary>
+    public async Task PrepareAsync(CancellationToken cancellationToken = default)
+    {
+        IsBusy = true;
+        StatusMessage = "Verificando o que já está configurado...";
+
+        try
+        {
+            var readiness = await _firstRunService.EvaluateReadinessAsync(cancellationToken);
+            CurrentStep = readiness.FirstPendingStep;
+            StatusMessage = readiness.IsReady
+                ? "Ambiente pronto. Revise as etapas ou volte para a central de conexões."
+                : readiness.Summary;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao avaliar o ambiente ao abrir o assistente.");
+            CurrentStep = 1;
+            StatusMessage = "Não foi possível verificar o ambiente. Comece pela primeira etapa.";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     [RelayCommand]
     private async Task CheckInstallationAsync()
     {

@@ -35,6 +35,8 @@ public partial class App : System.Windows.Application
         if (firstRunService.ShouldShowWizard())
         {
             navigationService.NavigateTo<WizardViewModel>();
+            // Uma instalação parcial retoma na etapa que falta, em vez de repetir tudo.
+            _ = Services.GetRequiredService<WizardViewModel>().PrepareAsync();
         }
         else
         {
@@ -45,7 +47,30 @@ public partial class App : System.Windows.Application
         mainWindow.DataContext = Services.GetRequiredService<MainWindowViewModel>();
         mainWindow.ExitRequested += OnExitRequested;
 
+        SessionEnding += OnSessionEnding;
+
         mainWindow.Show();
+    }
+
+    /// <summary>
+    /// Logoff ou desligamento do Windows. O sistema concede poucos segundos antes de
+    /// encerrar o processo à força, então não há espaço para perguntar nada ao usuário:
+    /// os túneis são finalizados imediatamente para não deixar processos Hoop órfãos.
+    /// </summary>
+    private void OnSessionEnding(object sender, SessionEndingCancelEventArgs e)
+    {
+        var logger = Services.GetRequiredService<ILoggerService>();
+        try
+        {
+            logger.LogInformation($"Sessão do Windows encerrando ({e.ReasonSessionEnding}); finalizando túneis ativos.");
+            _shutdownInProgress = true;
+            Services.GetRequiredService<MainWindow>().AuthorizeShutdown();
+            (Services.GetService<IConnectionService>() as IDisposable)?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Falha ao encerrar túneis durante o encerramento da sessão do Windows.");
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

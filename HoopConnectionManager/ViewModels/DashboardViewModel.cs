@@ -21,6 +21,8 @@ public sealed partial class DashboardViewModel : ObservableObject
     private readonly ISettingsService _settingsService;
     private readonly INotificationService _notificationService;
     private readonly ILoggerService _logger;
+    private readonly INavigationService _navigationService;
+    private readonly IFirstRunService _firstRunService;
     private readonly DispatcherTimer _statusRefreshTimer;
     private readonly DispatcherTimer _connectionsRefreshTimer;
     private readonly Dictionary<string, (ConnectionStatus Status, string? Detail)> _connectionStates =
@@ -39,6 +41,13 @@ public sealed partial class DashboardViewModel : ObservableObject
 
     [ObservableProperty]
     private string _catalogSyncStatus = "Preparando sincronização...";
+
+    /// <summary>
+    /// Estado do último ciclo de sincronização: <c>Ok</c>, <c>Error</c> ou <c>Neutral</c>.
+    /// A tela pintava o distintivo sempre de verde, inclusive ao anunciar falha.
+    /// </summary>
+    [ObservableProperty]
+    private string _catalogSyncState = "Neutral";
 
     [ObservableProperty]
     private string? _catalogMessage;
@@ -65,6 +74,19 @@ public sealed partial class DashboardViewModel : ObservableObject
     [ObservableProperty]
     private string _operationalStatus = "Nenhum túnel ativo";
 
+    /// <summary>
+    /// Começa como pronto para a faixa não piscar antes da primeira verificação.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isEnvironmentReady = true;
+
+    [ObservableProperty]
+    private string _environmentPendingSummary = string.Empty;
+
+    public bool HasPendingSetup => !IsEnvironmentReady;
+
+    partial void OnIsEnvironmentReadyChanged(bool value) => OnPropertyChanged(nameof(HasPendingSetup));
+
     public ObservableCollection<ConnectionViewModel> Connections { get; } = new();
     public ObservableCollection<ConnectionViewModel> ActiveConnections { get; } = new();
     public ObservableCollection<ConnectionViewModel> FavoriteConnections { get; } = new();
@@ -79,7 +101,9 @@ public sealed partial class DashboardViewModel : ObservableObject
         ISettingsService settingsService,
         INotificationService notificationService,
         ILoggerService logger,
-        ILoginService loginService)
+        ILoginService loginService,
+        INavigationService navigationService,
+        IFirstRunService firstRunService)
     {
         _hoopService = hoopService;
         _connectionService = connectionService;
@@ -87,12 +111,27 @@ public sealed partial class DashboardViewModel : ObservableObject
         _settingsService = settingsService;
         _notificationService = notificationService;
         _logger = logger;
+        _navigationService = navigationService;
+        _firstRunService = firstRunService;
+
+        // Reavalia sempre que esta tela volta a ser exibida: é o retorno do assistente
+        // que precisa fazer a faixa de pendência desaparecer imediatamente.
+        _navigationService.Navigated += (_, e) =>
+        {
+            if (ReferenceEquals(e.ViewModel, this))
+            {
+                _ = RefreshEnvironmentReadinessAsync();
+            }
+        };
+
         loginService.AuthenticationSucceeded += (_, _) =>
         {
             System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
             {
                 CatalogSyncStatus = "Autenticação renovada • atualizando conexões...";
+                CatalogSyncState = "Neutral";
                 _ = LoadConnectionsAsync(showProgress: false);
+                _ = RefreshEnvironmentReadinessAsync();
             }));
         };
         _settingsService.SettingsSaved += (_, settings) =>
@@ -134,6 +173,35 @@ public sealed partial class DashboardViewModel : ObservableObject
         ConfigureConnectionsRefresh(_settingsService.Load().RefreshConnectionsOnStartup);
 
         _ = LoadConnectionsAsync(showProgress: true);
+        _ = RefreshEnvironmentReadinessAsync();
+    }
+
+    /// <summary>
+    /// Mantém a faixa de configuração pendente em dia. Enquanto o Hoop, a sessão ou o
+    /// DBeaver estiverem faltando, o dev continua tendo um caminho de volta ao assistente.
+    /// </summary>
+    private async Task RefreshEnvironmentReadinessAsync()
+    {
+        try
+        {
+            var readiness = await _firstRunService.EvaluateReadinessAsync();
+            IsEnvironmentReady = readiness.IsReady;
+            EnvironmentPendingSummary = readiness.Summary;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Não foi possível avaliar o estado do ambiente: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private void OpenGuidedSetup()
+    {
+        _navigationService.NavigateTo<WizardViewModel>();
+        if (_navigationService.CurrentViewModel is WizardViewModel wizard)
+        {
+            _ = wizard.PrepareAsync();
+        }
     }
 
     private async Task UpdateDBeaverAfterReconnectionAsync(string connectionName)
@@ -149,7 +217,7 @@ public sealed partial class DashboardViewModel : ObservableObject
             string.Equals(item.Name, connectionName, StringComparison.OrdinalIgnoreCase));
         try
         {
-            await _dbeaverService.UpdateConnectionConfigurationAsync(new DBeaverConnectionInfo
+            var synchronized = await _dbeaverService.UpdateConnectionConfigurationAsync(new DBeaverConnectionInfo
             {
                 ConnectionId = connection?.Id ?? connectionName,
                 ConnectionName = connectionName,
@@ -158,7 +226,19 @@ public sealed partial class DashboardViewModel : ObservableObject
                 Username = tunnel.Credentials.Username,
                 Password = tunnel.Credentials.Password
             });
-            _logger.LogInformation($"DBeaver sincronizado após a recriação do túnel '{connectionName}'.");
+
+            if (synchronized)
+            {
+                _logger.LogInformation($"DBeaver sincronizado após a recriação do túnel '{connectionName}'.");
+                return;
+            }
+
+            // A porta e a senha mudam a cada túnel: sem confirmação, o DBeaver ficou
+            // com dados que não conectam mais e o usuário precisa saber disso.
+            _logger.LogWarning($"O túnel '{connectionName}' foi recuperado, mas o DBeaver não confirmou a nova porta/senha.");
+            _notificationService.Show(
+                "Túnel recuperado, mas o DBeaver não confirmou a nova porta/senha. Abra a conexão novamente.",
+                NotificationLevel.Warning);
         }
         catch (Exception ex)
         {
@@ -177,11 +257,13 @@ public sealed partial class DashboardViewModel : ObservableObject
             _connectionsRefreshTimer.Interval = TimeSpan.FromMinutes(5);
             _connectionsRefreshTimer.Start();
             CatalogSyncStatus = "Sincronização automática ativa • a cada 5 min";
+            CatalogSyncState = "Ok";
         }
         else
         {
             _connectionsRefreshTimer.Stop();
             CatalogSyncStatus = "Sincronização automática desativada";
+            CatalogSyncState = "Neutral";
         }
     }
 
@@ -247,18 +329,20 @@ public sealed partial class DashboardViewModel : ObservableObject
             CatalogSyncStatus = _connectionsRefreshTimer.IsEnabled
                 ? $"Atualizado às {DateTime.Now:HH:mm} • automático a cada 5 min"
                 : $"Atualizado às {DateTime.Now:HH:mm} • sincronização automática desativada";
+            CatalogSyncState = "Ok";
             RestoreNormalCatalogRefresh();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Falha ao carregar conexões.");
             CatalogSyncStatus = "Falha na última sincronização • nova tentativa automática";
+            CatalogSyncState = "Error";
             CatalogMessage = $"Não foi possível carregar o catálogo. {ex.Message}";
             EnableCatalogRecoveryRefresh();
             if (showProgress)
             {
                 UserStatusMessage = "Deslogado";
-                ShowGuidedFailure("Falha ao carregar conexões", ex);
+                await ShowGuidedFailureAsync("Falha ao carregar conexões", ex);
             }
         }
         finally
@@ -273,6 +357,7 @@ public sealed partial class DashboardViewModel : ObservableObject
 
     private void EnableCatalogRecoveryRefresh()
     {
+        CatalogSyncState = "Error";
         if (!_automaticCatalogRefreshEnabled)
         {
             CatalogSyncStatus = "Falha na última sincronização • atualização automática desativada";
@@ -367,7 +452,7 @@ public sealed partial class DashboardViewModel : ObservableObject
         {
             _logger.LogError(ex, $"Falha ao conectar a '{connection.Name}'.");
             connection.Status = ConnectionStatus.Error;
-            ShowGuidedFailure("Falha ao conectar", ex);
+            await ShowGuidedFailureAsync("Falha ao conectar", ex);
         }
         finally
         {
@@ -404,8 +489,21 @@ public sealed partial class DashboardViewModel : ObservableObject
         }
     }
 
-    private void ShowGuidedFailure(string context, Exception exception)
+    private async Task ShowGuidedFailureAsync(string context, Exception exception)
     {
+        // Antes de falar em sessão expirada, confirmar que houve sessão alguma vez.
+        // Sem o Hoop instalado, GetSessionAsync devolve "não autenticado" e a mensagem
+        // caía no ramo de expiração, oferecendo um "Autenticar novamente" que só falha.
+        await RefreshEnvironmentReadinessAsync();
+        if (HasPendingSetup)
+        {
+            _notificationService.Show(
+                $"Configuração incompleta. {EnvironmentPendingSummary}",
+                NotificationLevel.Warning,
+                NotificationAction.OpenGuidedSetup);
+            return;
+        }
+
         var message = exception.Message;
         if (ContainsAny(message, "unauthorized", "unauthenticated", "token", "login", "sessão", "autentica"))
         {
@@ -538,6 +636,8 @@ public sealed partial class DashboardViewModel : ObservableObject
             {
                 await LoadConnectionsAsync(showProgress: false);
             }
+
+            await RefreshEnvironmentReadinessAsync();
         }
         catch (Exception ex)
         {

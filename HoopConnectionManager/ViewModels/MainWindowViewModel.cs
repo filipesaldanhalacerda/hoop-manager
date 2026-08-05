@@ -15,6 +15,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly INavigationService _navigationService;
     private readonly IHoopService _hoopService;
     private readonly ILoginService _loginService;
+    private readonly INotificationService _notificationService;
+    private readonly ILoggerService _logger;
     private readonly DispatcherTimer _connectivityTimer;
     private readonly HashSet<string> _recoveringConnections = new(StringComparer.OrdinalIgnoreCase);
     private bool _connectivityCheckInProgress;
@@ -63,6 +65,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _navigationService = navigationService;
         _hoopService = hoopService;
         _loginService = loginService;
+        _notificationService = notificationService;
+        _logger = logger;
         _navigationService.Navigated += (_, e) => CurrentViewModel = e.ViewModel;
         CurrentViewModel = _navigationService.CurrentViewModel;
         notificationService.NotificationRaised += (_, e) => ShowNotification(e);
@@ -186,15 +190,36 @@ public sealed partial class MainWindowViewModel : ObservableObject
         switch (action)
         {
             case NotificationAction.Reauthenticate:
-                if (!await _loginService.LoginAsync())
+                try
                 {
-                    ConnectivityKind = nameof(GlobalConnectivityState.AuthenticationExpired);
-                    ConnectivityLabel = "Autenticação expirada";
-                    ConnectivityDetail = "O navegador não confirmou uma nova sessão.";
+                    if (!await _loginService.LoginAsync())
+                    {
+                        ConnectivityKind = nameof(GlobalConnectivityState.AuthenticationExpired);
+                        ConnectivityLabel = "Autenticação expirada";
+                        ConnectivityDetail = "O navegador não confirmou uma nova sessão.";
+                    }
+                    else
+                    {
+                        await UpdateConnectivityAsync();
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    await UpdateConnectivityAsync();
+                    // LoginAsync lança quando o Hoop não está instalado. Sem este tratamento
+                    // a ação simplesmente não fazia nada visível para o usuário.
+                    _logger.LogError(ex, "Falha ao autenticar pela ação da notificação.");
+                    _notificationService.Show(
+                        $"Não foi possível autenticar: {ex.Message}",
+                        NotificationLevel.Error,
+                        NotificationAction.OpenGuidedSetup);
+                }
+                break;
+
+            case NotificationAction.OpenGuidedSetup:
+                _navigationService.NavigateTo<WizardViewModel>();
+                if (_navigationService.CurrentViewModel is WizardViewModel wizard)
+                {
+                    await wizard.PrepareAsync();
                 }
                 break;
             case NotificationAction.OpenSettings:
@@ -234,6 +259,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
                 NotificationAction.Reauthenticate => "Autenticar novamente",
                 NotificationAction.SelectDBeaver => "Selecionar DBeaver",
                 NotificationAction.OpenSettings => "Abrir configurações",
+                NotificationAction.OpenGuidedSetup => "Abrir configuração",
                 _ => string.Empty
             };
             HasNotificationAction = notification.Action != NotificationAction.None;
