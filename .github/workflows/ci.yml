@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    # WPF e net8.0-windows exigem runner Windows.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restaurar
+        run: dotnet restore HoopConnectionManager.sln
+
+      - name: Compilar
+        run: dotnet build HoopConnectionManager.sln -c Release --no-restore
+
+      - name: Testar
+        run: dotnet test HoopConnectionManager.sln -c Release --no-build
+
+  installer:
+    # O empacotamento é validado sob demanda: publica self-contained e gera o MSI.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Gerar MSI
+        run: dotnet build installer\DevAccessCenter.Installer.wixproj -c Release -p:ProductVersion=1.0.0
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DevAccessCenter-msi
+          path: installer/bin/x64/Release/*.msi
+          if-no-files-found: error
