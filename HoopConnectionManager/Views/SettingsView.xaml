@@ -5,6 +5,19 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="1050">
     <UserControl.Resources>
+        <Style x:Key="SettingsCard" TargetType="Border" BasedOn="{StaticResource CardBorder}">
+            <Setter Property="Margin" Value="0,0,0,18" />
+        </Style>
+        <Style x:Key="CardHeaderText" TargetType="StackPanel">
+            <Setter Property="Margin" Value="13,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="CardIntro" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="LineHeight" Value="18" />
+            <Setter Property="Margin" Value="0,0,0,16" />
+        </Style>
         <Style x:Key="FlowStepBadge" TargetType="Border">
             <Setter Property="Width" Value="21" />
             <Setter Property="Height" Value="21" />
@@ -40,203 +53,215 @@
         </Grid>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <!-- Grade de linhas, e não duas colunas independentes. Antes a coluna direita
+                 tinha o dobro de cards da esquerda: ao rolar, os últimos ficavam sozinhos
+                 contra um vazio. Cada linha agora emparelha cards de altura semelhante,
+                 os dois lados terminam juntos e os cards de uma linha têm a mesma altura. -->
             <Grid Margin="0,0,10,0">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="3*" /><ColumnDefinition Width="20" /><ColumnDefinition Width="2*" /></Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="2*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-                <StackPanel Grid.Column="0">
-                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,18">
-                        <StackPanel>
-                            <Grid Margin="0,0,0,14">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource CardIconBadge}"><TextBlock Text="&#xE756;" Style="{StaticResource CardIconGlyph}" /></Border>
-                                <StackPanel Grid.Column="1" Margin="13,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="INTEGRAÇÕES" Style="{StaticResource EyebrowText}" />
-                                    <TextBlock Text="Executáveis detectados" Style="{StaticResource SectionHeading}" Margin="0,2,0,0" />
-                                </StackPanel>
-                            </Grid>
-                            <TextBlock Text="Esses caminhos são usados para iniciar o Hoop e abrir o DBeaver após criar um túnel."
-                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,20" />
+                <!-- Linha 1 · ambiente: o que está instalado | em que estado está -->
+                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource SettingsCard}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource CardIconBadge}"><TextBlock Text="&#xE756;" Style="{StaticResource CardIconGlyph}" /></Border>
+                            <StackPanel Grid.Column="1" Style="{StaticResource CardHeaderText}">
+                                <TextBlock Text="INTEGRAÇÕES" Style="{StaticResource EyebrowText}" />
+                                <TextBlock Text="Executáveis detectados" Style="{StaticResource SectionHeading}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Style="{StaticResource CardIntro}"
+                                   Text="Esses caminhos são usados para iniciar o Hoop e abrir o DBeaver após criar um túnel." />
 
-                            <TextBlock Text="Hoop CLI" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" />
-                            <TextBlock Text="Executável responsável pela autenticação e pelos túneis locais."
-                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" Margin="0,2,0,7" />
-                            <Grid Margin="0,0,0,18">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <TextBox Text="{Binding HoopExecutablePath}" Style="{StaticResource FluentTextBox}" FontFamily="{DynamicResource MonoFontFamily}" FontSize="12" />
-                                <Button Grid.Column="1" Content="Localizar" Command="{Binding BrowseHoopExecutableCommand}"
-                                        Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" />
-                            </Grid>
+                        <TextBlock Text="Hoop CLI" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" />
+                        <TextBlock Text="Executável responsável pela autenticação e pelos túneis locais."
+                                   Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" Margin="0,2,0,7" />
+                        <Grid Margin="0,0,0,18">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding HoopExecutablePath}" Style="{StaticResource FluentTextBox}" FontFamily="{DynamicResource MonoFontFamily}" FontSize="12" />
+                            <Button Grid.Column="1" Content="Localizar" Command="{Binding BrowseHoopExecutableCommand}"
+                                    Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" />
+                        </Grid>
 
-                            <TextBlock Text="DBeaver" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" />
-                            <TextBlock Text="Cliente que será aberto automaticamente com o endpoint local."
-                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" Margin="0,2,0,7" />
-                            <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <TextBox Text="{Binding DbeaverExecutablePath}" Style="{StaticResource FluentTextBox}" FontFamily="{DynamicResource MonoFontFamily}" FontSize="12" />
-                                <Button Grid.Column="1" Content="Localizar" Command="{Binding BrowseDBeaverExecutableCommand}"
-                                        Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" />
-                            </Grid>
-                        </StackPanel>
-                    </Border>
+                        <TextBlock Text="DBeaver" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" />
+                        <TextBlock Text="Cliente que será aberto automaticamente com o endpoint local."
+                                   Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" Margin="0,2,0,7" />
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding DbeaverExecutablePath}" Style="{StaticResource FluentTextBox}" FontFamily="{DynamicResource MonoFontFamily}" FontSize="12" />
+                            <Button Grid.Column="1" Content="Localizar" Command="{Binding BrowseDBeaverExecutableCommand}"
+                                    Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
-                    <Border Style="{StaticResource CardBorder}">
-                        <StackPanel>
-                            <Grid Margin="0,0,0,14">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource CardIconBadge}"><TextBlock Text="&#xE9E9;" Style="{StaticResource CardIconGlyph}" /></Border>
-                                <StackPanel Grid.Column="1" Margin="13,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="COMPORTAMENTO" Style="{StaticResource EyebrowText}" />
-                                    <TextBlock Text="Automação" Style="{StaticResource SectionHeading}" Margin="0,2,0,0" />
-                                </StackPanel>
-                            </Grid>
-                            <CheckBox Content="Iniciar o gerenciador com o Windows" IsChecked="{Binding StartWithWindows}"
-                                      Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
-                            <CheckBox Content="Continuar executando na bandeja ao fechar a janela" IsChecked="{Binding MinimizeToTray}"
-                                      Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
-                            <CheckBox Content="Encerrar todos os túneis ao sair do aplicativo" IsChecked="{Binding DisconnectTunnelsOnExit}"
-                                      ToolTip="Quando desativado, o aplicativo pedirá confirmação antes de encerrar túneis ativos."
-                                      Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
-                            <CheckBox Content="Abrir o DBeaver automaticamente após conectar" IsChecked="{Binding OpenDBeaverAutomatically}"
-                                      Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
-                            <CheckBox Content="Sincronizar o catálogo automaticamente a cada 5 minutos" IsChecked="{Binding RefreshConnectionsOnStartup}"
-                                      Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
+                <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource SettingsCard}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource CardIconBadge}"><TextBlock Text="&#xE9D9;" Style="{StaticResource CardIconGlyph}" /></Border>
+                            <StackPanel Grid.Column="1" Style="{StaticResource CardHeaderText}">
+                                <TextBlock Text="DIAGNÓSTICO SEGURO" Style="{StaticResource EyebrowText}" />
+                                <TextBlock Text="Ambiente Hoop" Style="{StaticResource SectionHeading}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Style="{StaticResource CardIntro}"
+                                   Text="Informações não sensíveis obtidas pelos comandos oficiais. Tokens nunca são consultados." />
 
-                <StackPanel Grid.Column="2">
-                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,18">
-                        <StackPanel>
-                            <Grid Margin="0,0,0,12">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource CardIconBadge}"><TextBlock Text="&#xE9D9;" Style="{StaticResource CardIconGlyph}" /></Border>
-                                <StackPanel Grid.Column="1" Margin="13,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="DIAGNÓSTICO SEGURO" Style="{StaticResource EyebrowText}" />
-                                    <TextBlock Text="Ambiente Hoop" Style="{StaticResource SectionHeading}" Margin="0,2,0,0" />
-                                </StackPanel>
-                            </Grid>
-                            <TextBlock Text="Informações não sensíveis obtidas pelos comandos oficiais. Tokens nunca são consultados."
-                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,16" />
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="VERSÃO" Style="{StaticResource EyebrowText}" />
+                            <TextBlock Grid.Column="1" Text="{Binding HoopVersion}" Foreground="{DynamicResource ForegroundBrush}"
+                                       FontFamily="{DynamicResource MonoFontFamily}" TextWrapping="Wrap" />
+                        </Grid>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="APLICATIVO" Style="{StaticResource EyebrowText}" />
+                            <TextBlock Grid.Column="1" Text="{Binding DevAccessCenterVersion, StringFormat=Dev Access Center {0}}"
+                                       Foreground="{DynamicResource ForegroundBrush}" FontFamily="{DynamicResource MonoFontFamily}" />
+                        </Grid>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="GATEWAY" Style="{StaticResource EyebrowText}" />
+                            <TextBlock Grid.Column="1" Text="{Binding HoopGateway}" Foreground="{DynamicResource ForegroundBrush}"
+                                       FontFamily="{DynamicResource MonoFontFamily}" TextWrapping="Wrap" />
+                        </Grid>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="CONFIGURAÇÃO" Style="{StaticResource EyebrowText}" />
+                            <TextBlock Grid.Column="1" Text="{Binding HoopConfigurationSource}" Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" />
+                        </Grid>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="SESSÃO" Style="{StaticResource EyebrowText}" />
+                            <TextBlock Grid.Column="1" Text="{Binding HoopAuthenticationStatus}" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsHoopAuthenticated}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                        <TextBlock Text="{Binding HoopCompatibilityStatus}" Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                   FontSize="10" TextWrapping="Wrap" Margin="0,2,0,14" />
+                        <Button Content="Autenticar novamente" Command="{Binding ReauthenticateHoopCommand}"
+                                Style="{StaticResource FluentButton}" HorizontalAlignment="Left" Padding="18,9" />
+                    </StackPanel>
+                </Border>
 
-                            <Grid Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <TextBlock Text="VERSÃO" Style="{StaticResource EyebrowText}" />
-                                <TextBlock Grid.Column="1" Text="{Binding HoopVersion}" Foreground="{DynamicResource ForegroundBrush}"
-                                           FontFamily="{DynamicResource MonoFontFamily}" TextWrapping="Wrap" />
-                            </Grid>
-                            <Grid Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <TextBlock Text="APLICATIVO" Style="{StaticResource EyebrowText}" />
-                                <TextBlock Grid.Column="1" Text="{Binding DevAccessCenterVersion, StringFormat=Dev Access Center {0}}"
-                                           Foreground="{DynamicResource ForegroundBrush}" FontFamily="{DynamicResource MonoFontFamily}" />
-                            </Grid>
-                            <Grid Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <TextBlock Text="GATEWAY" Style="{StaticResource EyebrowText}" />
-                                <TextBlock Grid.Column="1" Text="{Binding HoopGateway}" Foreground="{DynamicResource ForegroundBrush}"
-                                           FontFamily="{DynamicResource MonoFontFamily}" TextWrapping="Wrap" />
-                            </Grid>
-                            <Grid Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <!-- Linha 2 · preferências: o que o aplicativo faz sozinho | como ele aparece -->
+                <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource SettingsCard}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource CardIconBadge}"><TextBlock Text="&#xE9E9;" Style="{StaticResource CardIconGlyph}" /></Border>
+                            <StackPanel Grid.Column="1" Style="{StaticResource CardHeaderText}">
+                                <TextBlock Text="COMPORTAMENTO" Style="{StaticResource EyebrowText}" />
+                                <TextBlock Text="Automação" Style="{StaticResource SectionHeading}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Grid>
+                        <CheckBox Content="Iniciar o gerenciador com o Windows" IsChecked="{Binding StartWithWindows}"
+                                  Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
+                        <CheckBox Content="Continuar executando na bandeja ao fechar a janela" IsChecked="{Binding MinimizeToTray}"
+                                  Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
+                        <CheckBox Content="Encerrar todos os túneis ao sair do aplicativo" IsChecked="{Binding DisconnectTunnelsOnExit}"
+                                  ToolTip="Quando desativado, o aplicativo pedirá confirmação antes de encerrar túneis ativos."
+                                  Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
+                        <CheckBox Content="Abrir o DBeaver automaticamente após conectar" IsChecked="{Binding OpenDBeaverAutomatically}"
+                                  Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
+                        <CheckBox Content="Sincronizar o catálogo automaticamente a cada 5 minutos" IsChecked="{Binding RefreshConnectionsOnStartup}"
+                                  Foreground="{DynamicResource ForegroundBrush}" Margin="0,6" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource SettingsCard}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource CardIconBadge}"><TextBlock Text="&#xE790;" Style="{StaticResource CardIconGlyph}" /></Border>
+                            <StackPanel Grid.Column="1" Style="{StaticResource CardHeaderText}">
+                                <TextBlock Text="APARÊNCIA" Style="{StaticResource EyebrowText}" />
+                                <TextBlock Text="Tema da interface" Style="{StaticResource SectionHeading}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Style="{StaticResource CardIntro}"
+                                   Text="Use o tema do Windows ou escolha uma preferência fixa." />
+                        <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}"
+                                  Style="{StaticResource FluentComboBox}" />
+                        <TextBlock Text="A alteração é aplicada e salva imediatamente."
+                                   Foreground="{DynamicResource SuccessBrush}" FontSize="10" Margin="0,9,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Linha 3 · ajuda: refazer a configuração | entender o que acontece -->
+                <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource SettingsCard}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource CardIconBadge}"><TextBlock Text="&#xE71D;" Style="{StaticResource CardIconGlyph}" /></Border>
+                            <StackPanel Grid.Column="1" Style="{StaticResource CardHeaderText}">
                                 <TextBlock Text="CONFIGURAÇÃO" Style="{StaticResource EyebrowText}" />
-                                <TextBlock Grid.Column="1" Text="{Binding HoopConfigurationSource}" Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" />
-                            </Grid>
-                            <Grid Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <TextBlock Text="SESSÃO" Style="{StaticResource EyebrowText}" />
-                                <TextBlock Grid.Column="1" Text="{Binding HoopAuthenticationStatus}" FontWeight="SemiBold">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsHoopAuthenticated}" Value="True">
-                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </Grid>
-                            <TextBlock Text="{Binding HoopCompatibilityStatus}" Foreground="{DynamicResource ForegroundSecondaryBrush}"
-                                       FontSize="10" TextWrapping="Wrap" Margin="0,2,0,14" />
-                            <Button Content="Autenticar novamente" Command="{Binding ReauthenticateHoopCommand}"
-                                    Style="{StaticResource FluentButton}" HorizontalAlignment="Left" />
-                        </StackPanel>
-                    </Border>
+                                <TextBlock Text="Assistente de ambiente" Style="{StaticResource SectionHeading}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Style="{StaticResource CardIntro}"
+                                   Text="Refaz a verificação de Hoop, autenticação e DBeaver. O assistente abre direto na primeira etapa que ainda estiver pendente." />
+                        <Button Content="Abrir configuração guiada" Command="{Binding OpenGuidedSetupCommand}"
+                                Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Padding="18,9" />
+                    </StackPanel>
+                </Border>
 
-                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,18">
-                        <StackPanel>
-                            <Grid Margin="0,0,0,12">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource CardIconBadge}"><TextBlock Text="&#xE790;" Style="{StaticResource CardIconGlyph}" /></Border>
-                                <StackPanel Grid.Column="1" Margin="13,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="APARÊNCIA" Style="{StaticResource EyebrowText}" />
-                                    <TextBlock Text="Tema da interface" Style="{StaticResource SectionHeading}" Margin="0,2,0,0" />
-                                </StackPanel>
-                            </Grid>
-                            <TextBlock Text="Use o tema do Windows ou escolha uma preferência fixa."
-                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,14" />
-                            <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}"
-                                      Style="{StaticResource FluentComboBox}" />
-                            <TextBlock Text="A alteração é aplicada e salva imediatamente."
-                                       Foreground="{DynamicResource SuccessBrush}" FontSize="10" Margin="0,9,0,0" />
-                        </StackPanel>
-                    </Border>
-
-                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,18">
-                        <StackPanel>
-                            <Grid Margin="0,0,0,12">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource CardIconBadge}"><TextBlock Text="&#xE71D;" Style="{StaticResource CardIconGlyph}" /></Border>
-                                <StackPanel Grid.Column="1" Margin="13,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="CONFIGURAÇÃO" Style="{StaticResource EyebrowText}" />
-                                    <TextBlock Text="Assistente de ambiente" Style="{StaticResource SectionHeading}" Margin="0,2,0,0" />
-                                </StackPanel>
-                            </Grid>
-                            <TextBlock Text="Refaz a verificação de Hoop, autenticação e DBeaver. O assistente abre direto na primeira etapa que ainda estiver pendente."
-                                       Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,14" />
-                            <Button Content="Abrir configuração guiada" Command="{Binding OpenGuidedSetupCommand}"
-                                    Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Padding="18,9" />
-                        </StackPanel>
-                    </Border>
-
-                    <Border Style="{StaticResource CardBorder}" Background="{DynamicResource AccentSoftBrush}">
-                        <StackPanel>
-                            <Grid Margin="0,0,0,14">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource CardIconBadge}"><TextBlock Text="&#xE946;" Style="{StaticResource CardIconGlyph}" /></Border>
-                                <StackPanel Grid.Column="1" Margin="13,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="COMO FUNCIONA" Style="{StaticResource EyebrowText}" />
-                                    <TextBlock Text="Fluxo de conexão" Style="{StaticResource SectionHeading}" Margin="0,2,0,0" />
-                                </StackPanel>
-                            </Grid>
-                            <Grid Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource FlowStepBadge}"><TextBlock Text="1" Style="{StaticResource FlowStepNumber}" /></Border>
-                                <TextBlock Grid.Column="1" Text="O Hoop abre um túnel seguro" Style="{StaticResource FlowStepText}" />
-                            </Grid>
-                            <Grid Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource FlowStepBadge}"><TextBlock Text="2" Style="{StaticResource FlowStepNumber}" /></Border>
-                                <TextBlock Grid.Column="1" Text="Uma porta local exclusiva é reservada" Style="{StaticResource FlowStepText}" />
-                            </Grid>
+                <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource SettingsCard}" Background="{DynamicResource AccentSoftBrush}">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource CardIconBadge}"><TextBlock Text="&#xE946;" Style="{StaticResource CardIconGlyph}" /></Border>
+                            <StackPanel Grid.Column="1" Style="{StaticResource CardHeaderText}">
+                                <TextBlock Text="COMO FUNCIONA" Style="{StaticResource EyebrowText}" />
+                                <TextBlock Text="Fluxo de conexão" Style="{StaticResource SectionHeading}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource FlowStepBadge}"><TextBlock Text="1" Style="{StaticResource FlowStepNumber}" /></Border>
+                            <TextBlock Grid.Column="1" Text="O Hoop abre um túnel seguro" Style="{StaticResource FlowStepText}" />
+                        </Grid>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource FlowStepBadge}"><TextBlock Text="2" Style="{StaticResource FlowStepNumber}" /></Border>
+                            <TextBlock Grid.Column="1" Text="Uma porta local exclusiva é reservada" Style="{StaticResource FlowStepText}" />
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource FlowStepBadge}"><TextBlock Text="3" Style="{StaticResource FlowStepNumber}" /></Border>
+                            <TextBlock Grid.Column="1" Text="O DBeaver usa esse endpoint local" Style="{StaticResource FlowStepText}" />
+                        </Grid>
+                        <Border Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="7" Padding="11,9" Margin="0,14,0,0">
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource FlowStepBadge}"><TextBlock Text="3" Style="{StaticResource FlowStepNumber}" /></Border>
-                                <TextBlock Grid.Column="1" Text="O DBeaver usa esse endpoint local" Style="{StaticResource FlowStepText}" />
+                                <TextBlock Text="&#xE72E;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource SuccessBrush}"
+                                           FontSize="11" VerticalAlignment="Top" Margin="0,1,8,0" />
+                                <TextBlock Grid.Column="1" Text="Senhas temporárias permanecem somente em memória."
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" TextWrapping="Wrap" LineHeight="16" />
                             </Grid>
-                            <Border Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="7" Padding="11,9" Margin="0,14,0,0">
-                                <Grid>
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE72E;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource SuccessBrush}"
-                                               FontSize="11" VerticalAlignment="Top" Margin="0,1,8,0" />
-                                    <TextBlock Grid.Column="1" Text="Senhas temporárias permanecem somente em memória."
-                                               Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" TextWrapping="Wrap" LineHeight="16" />
-                                </Grid>
-                            </Border>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
             </Grid>
         </ScrollViewer>
 
