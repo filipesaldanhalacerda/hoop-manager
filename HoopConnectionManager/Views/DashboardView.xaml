@@ -609,17 +609,6 @@
                                 <TextBlock Grid.Column="1" Style="{StaticResource GuideStepText}"
                                            Text="Teste a conexão e salve. Nas próximas vezes, basta atualizar a porta e a senha." />
                             </Grid>
-
-                            <Border Background="{DynamicResource WarningSurfaceBrush}" BorderBrush="{DynamicResource WarningBrush}"
-                                    BorderThickness="1" CornerRadius="9" Padding="13,11" Margin="0,20,0,0">
-                                <Grid>
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <TextBlock Text="&#xE7BA;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource WarningBrush}"
-                                               FontSize="14" VerticalAlignment="Top" Margin="0,1,10,0" />
-                                    <TextBlock Grid.Column="1" Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" FontSize="11" LineHeight="17"
-                                               Text="A porta e a senha valem apenas para este túnel. Ao reconectar, confira os dados aqui antes de usar a conexão salva. O database mostrado é o banco de manutenção padrão; se o seu recurso usar outro, ajuste no seu gerenciador." />
-                                </Grid>
-                            </Border>
                         </StackPanel>
                     </ScrollViewer>
 
