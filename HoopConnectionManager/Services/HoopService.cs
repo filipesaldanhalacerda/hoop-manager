@@ -405,6 +405,14 @@ public sealed class HoopService : IHoopService
             throw;
         }
 
+        credentials = UseReservedPort(credentials, localPort, out var portCorrected);
+        if (portCorrected)
+        {
+            _logger.LogWarning(
+                $"O Hoop relatou uma porta diferente da reservada para '{connectionName}'. " +
+                $"O túnel foi solicitado em {localPort} e é essa a porta entregue ao cliente de banco.");
+        }
+
         var tunnel = new ActiveTunnel
         {
             ConnectionName = connectionName,
@@ -516,6 +524,35 @@ public sealed class HoopService : IHoopService
         }
 
         return new(GlobalConnectivityState.HoopDisconnected, "O Hoop não confirmou uma sessão válida neste computador.");
+    }
+
+    /// <summary>
+    /// Garante que o túnel use a porta que este aplicativo reservou e passou em
+    /// <c>--port</c>, e não a que foi lida da saída do processo.
+    /// </summary>
+    /// <remarks>
+    /// A porta era extraída do texto do CLI com uma busca que devolve a PRIMEIRA
+    /// ocorrência de "Port" seguida de dígitos em todo o buffer. Qualquer linha anterior
+    /// citando outra porta — um eco do parâmetro, um aviso de padrão — vencia o bloco de
+    /// credenciais. O efeito prático é grave: dois túneis simultâneos recebem a mesma
+    /// porta e o cliente de banco abre a conexão errada, possivelmente em outro ambiente.
+    /// </remarks>
+    internal static ConnectionCredentials? UseReservedPort(
+        ConnectionCredentials? credentials,
+        int reservedPort,
+        out bool corrected)
+    {
+        corrected = false;
+        if (credentials is null || credentials.Port == reservedPort)
+        {
+            return credentials;
+        }
+
+        var replacement = new ConnectionCredentials(
+            credentials.Host, reservedPort, credentials.Username, credentials.Password);
+        credentials.Dispose();
+        corrected = true;
+        return replacement;
     }
 
     private static bool ContainsAny(string value, params string[] terms) =>
@@ -637,7 +674,13 @@ public sealed class HoopService : IHoopService
 
         if (!result.Success && logFailure)
         {
-            _logger.LogError($"Comando falhou: {result.StandardError}");
+            // Sem o comando e o código de saída, "Comando falhou" não permite diagnóstico:
+            // o stderr costuma vir vazio e a linha não dizia sequer o que foi executado.
+            var detail = string.IsNullOrWhiteSpace(result.StandardError)
+                ? result.StandardOutput.Trim()
+                : result.StandardError.Trim();
+            _logger.LogError(
+                $"Comando 'hoop {arguments}' falhou com código {result.ExitCode}. {detail}".TrimEnd());
         }
 
         return result;

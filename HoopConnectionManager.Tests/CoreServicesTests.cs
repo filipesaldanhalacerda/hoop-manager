@@ -228,6 +228,68 @@ public sealed class ConnectionServiceTests
 }
 
 [TestClass]
+public sealed class ReservedPortTests
+{
+    /// <summary>
+    /// Regressão: a porta vinha de uma busca pela primeira ocorrência de "Port" na saída
+    /// do CLI. Um preâmbulo citando outra porta fazia dois túneis simultâneos receberem
+    /// o mesmo número, e o cliente de banco abria a conexão errada.
+    /// </summary>
+    [TestMethod]
+    public void PrefersTheReservedPortOverTheOneReportedByTheCli()
+    {
+        var reported = new ConnectionCredentials("127.0.0.1", 5433, "hoop", "temporaria");
+
+        var result = HoopService.UseReservedPort(reported, reservedPort: 5434, out var corrected);
+
+        Assert.IsTrue(corrected);
+        Assert.AreEqual(5434, result!.Port);
+        Assert.AreEqual("127.0.0.1", result.Host);
+        Assert.AreEqual("hoop", result.Username);
+        Assert.AreEqual("temporaria", result.Password, "A senha do túnel precisa sobreviver à correção.");
+    }
+
+    [TestMethod]
+    public void LeavesCredentialsUntouchedWhenThePortsAgree()
+    {
+        var reported = new ConnectionCredentials("127.0.0.1", 5433, "hoop", "temporaria");
+
+        var result = HoopService.UseReservedPort(reported, reservedPort: 5433, out var corrected);
+
+        Assert.IsFalse(corrected);
+        Assert.AreSame(reported, result);
+    }
+
+    [TestMethod]
+    public void TolerAtesMissingCredentials()
+    {
+        Assert.IsNull(HoopService.UseReservedPort(null, reservedPort: 5433, out var corrected));
+        Assert.IsFalse(corrected);
+    }
+
+    /// <summary>
+    /// Demonstra a saída que produzia o defeito: um preâmbulo citando 5433 antes do
+    /// bloco real de credenciais em 5434.
+    /// </summary>
+    [TestMethod]
+    public void ShowsWhyTheCliOutputCannotBeTrustedForThePort()
+    {
+        const string output = """
+            Opening tunnel, default port 5433 in use
+            Host: 127.0.0.1
+            Port: 5434
+            Username: hoop
+            Password: temporaria
+            """;
+
+        var parsed = HoopOutputParser.TryParseCredentials(output);
+
+        Assert.AreEqual(5433, parsed!.Port, "A leitura do texto pega a primeira porta citada.");
+        Assert.AreEqual(5434, HoopService.UseReservedPort(parsed, 5434, out _)!.Port);
+    }
+}
+
+[TestClass]
 public sealed class CredentialTests
 {
     [TestMethod]
