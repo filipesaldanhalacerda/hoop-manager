@@ -5,108 +5,486 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d" d:DesignHeight="700" d:DesignWidth="1050">
     <UserControl.Resources>
+        <!-- A trilha usa Tag como estado (Completed/Current/Pending) porque o
+             ConverterParameter varia por passo e não pode vir de um Style. -->
         <Style x:Key="StepCircle" TargetType="Border">
-            <Setter Property="Width" Value="34" /><Setter Property="Height" Value="34" />
-            <Setter Property="CornerRadius" Value="17" /><Setter Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" /><Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Style.Triggers>
+                <Trigger Property="Tag" Value="Current">
+                    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.5" Color="#315CAA" />
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+                <Trigger Property="Tag" Value="Completed">
+                    <Setter Property="Background" Value="{DynamicResource SuccessSurfaceBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
-        <Style x:Key="StepLabel" TargetType="TextBlock">
+
+        <Style x:Key="StepNumber" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}" />
-            <Setter Property="FontSize" Value="11" /><Setter Property="Margin" Value="0,7,0,0" />
+            <Style.Triggers>
+                <Trigger Property="Tag" Value="Current">
+                    <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}" />
+                </Trigger>
+                <Trigger Property="Tag" Value="Completed">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="StepCheck" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontFamily" Value="{DynamicResource IconFontFamily}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <Trigger Property="Tag" Value="Completed">
+                    <Setter Property="Visibility" Value="Visible" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="StepLabel" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Margin" Value="0,9,0,0" />
+            <Style.Triggers>
+                <Trigger Property="Tag" Value="Current">
+                    <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                </Trigger>
+                <Trigger Property="Tag" Value="Completed">
+                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="StepTrack" TargetType="Border">
+            <Setter Property="Height" Value="2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
+            <Style.Triggers>
+                <Trigger Property="Tag" Value="Completed">
+                    <Setter Property="Background" Value="{DynamicResource SuccessBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="StepIconBadge" TargetType="Border">
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Height" Value="46" />
+            <Setter Property="CornerRadius" Value="11" />
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+
+        <Style x:Key="StepIconGlyph" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource IconFontFamily}" />
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="StepBodyText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="LineHeight" Value="21" />
+            <Setter Property="Margin" Value="0,0,0,18" />
+        </Style>
+
+        <Style x:Key="DetailText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="LineHeight" Value="18" />
+        </Style>
+
+        <Style x:Key="DetailDot" TargetType="Border">
+            <Setter Property="Width" Value="5" />
+            <Setter Property="Height" Value="5" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,7,11,0" />
+        </Style>
+
+        <Style x:Key="DetailPanel" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="Padding" Value="16,14" />
+            <Setter Property="Margin" Value="0,0,0,22" />
         </Style>
     </UserControl.Resources>
 
     <Grid Style="{StaticResource PageRoot}">
-        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="0,0,0,22">
-            <TextBlock Text="CONFIGURAÇÃO GUIADA" Style="{StaticResource EyebrowText}" />
-            <TextBlock Text="Prepare seu ambiente" Style="{StaticResource PageTitle}" Margin="0,3,0,0" />
-            <TextBlock Text="Cinco verificações rápidas para conectar bancos com segurança."
-                       Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,5,0,0" />
-        </StackPanel>
+        <Grid Grid.Row="0" Margin="0,0,0,22">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="CONFIGURAÇÃO GUIADA" Style="{StaticResource EyebrowText}" />
+                <TextBlock Text="Prepare seu ambiente" Style="{StaticResource PageTitle}" Margin="0,3,0,0" />
+                <TextBlock Text="Cinco verificações rápidas para conectar bancos com segurança."
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,5,0,0" />
+            </StackPanel>
+            <Border Grid.Column="1" Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource AccentBrush}"
+                    BorderThickness="1" CornerRadius="14" Padding="13,7" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE71D;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource AccentBrush}"
+                               FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding CurrentStep, StringFormat=Etapa {0} de 5}" Foreground="{DynamicResource AccentBrush}"
+                               FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
 
-        <Border Grid.Row="1" Style="{StaticResource CardBorder}" Padding="18,14" Margin="0,0,0,18">
+        <Border Grid.Row="1" Style="{StaticResource CardBorder}" Padding="26,20" Margin="0,0,0,18">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" HorizontalAlignment="Center"><Border><Border.Style><Style TargetType="Border" BasedOn="{StaticResource StepCircle}"><Style.Triggers><DataTrigger Binding="{Binding CurrentStep}" Value="1"><Setter Property="Background" Value="{DynamicResource AccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></DataTrigger></Style.Triggers></Style></Border.Style><TextBlock Text="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" /></Border><TextBlock Text="Hoop CLI" Style="{StaticResource StepLabel}" /></StackPanel>
-                <StackPanel Grid.Column="1" HorizontalAlignment="Center"><Border><Border.Style><Style TargetType="Border" BasedOn="{StaticResource StepCircle}"><Style.Triggers><DataTrigger Binding="{Binding CurrentStep}" Value="2"><Setter Property="Background" Value="{DynamicResource AccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></DataTrigger></Style.Triggers></Style></Border.Style><TextBlock Text="2" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" /></Border><TextBlock Text="Autenticação" Style="{StaticResource StepLabel}" /></StackPanel>
-                <StackPanel Grid.Column="2" HorizontalAlignment="Center"><Border><Border.Style><Style TargetType="Border" BasedOn="{StaticResource StepCircle}"><Style.Triggers><DataTrigger Binding="{Binding CurrentStep}" Value="3"><Setter Property="Background" Value="{DynamicResource AccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></DataTrigger></Style.Triggers></Style></Border.Style><TextBlock Text="3" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" /></Border><TextBlock Text="Conexões" Style="{StaticResource StepLabel}" /></StackPanel>
-                <StackPanel Grid.Column="3" HorizontalAlignment="Center"><Border><Border.Style><Style TargetType="Border" BasedOn="{StaticResource StepCircle}"><Style.Triggers><DataTrigger Binding="{Binding CurrentStep}" Value="4"><Setter Property="Background" Value="{DynamicResource AccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></DataTrigger></Style.Triggers></Style></Border.Style><TextBlock Text="4" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" /></Border><TextBlock Text="DBeaver" Style="{StaticResource StepLabel}" /></StackPanel>
-                <StackPanel Grid.Column="4" HorizontalAlignment="Center"><Border><Border.Style><Style TargetType="Border" BasedOn="{StaticResource StepCircle}"><Style.Triggers><DataTrigger Binding="{Binding CurrentStep}" Value="5"><Setter Property="Background" Value="{DynamicResource SuccessBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}" /></DataTrigger></Style.Triggers></Style></Border.Style><TextBlock Text="✓" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" /></Border><TextBlock Text="Pronto" Style="{StaticResource StepLabel}" /></StackPanel>
+
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Grid.Column="1" Style="{StaticResource StepCircle}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=1}">
+                            <Grid>
+                                <TextBlock Text="1" Style="{StaticResource StepNumber}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=1}" />
+                                <TextBlock Text="&#xE73E;" Style="{StaticResource StepCheck}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=1}" />
+                            </Grid>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource StepTrack}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=1}" />
+                    </Grid>
+                    <TextBlock Grid.Row="1" Text="Hoop CLI" Style="{StaticResource StepLabel}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=1}" />
+                </Grid>
+
+                <Grid Grid.Column="1">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource StepTrack}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=1}" />
+                        <Border Grid.Column="1" Style="{StaticResource StepCircle}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=2}">
+                            <Grid>
+                                <TextBlock Text="2" Style="{StaticResource StepNumber}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=2}" />
+                                <TextBlock Text="&#xE73E;" Style="{StaticResource StepCheck}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=2}" />
+                            </Grid>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource StepTrack}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=2}" />
+                    </Grid>
+                    <TextBlock Grid.Row="1" Text="Autenticação" Style="{StaticResource StepLabel}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=2}" />
+                </Grid>
+
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource StepTrack}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=2}" />
+                        <Border Grid.Column="1" Style="{StaticResource StepCircle}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=3}">
+                            <Grid>
+                                <TextBlock Text="3" Style="{StaticResource StepNumber}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=3}" />
+                                <TextBlock Text="&#xE73E;" Style="{StaticResource StepCheck}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=3}" />
+                            </Grid>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource StepTrack}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=3}" />
+                    </Grid>
+                    <TextBlock Grid.Row="1" Text="Conexões" Style="{StaticResource StepLabel}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=3}" />
+                </Grid>
+
+                <Grid Grid.Column="3">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource StepTrack}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=3}" />
+                        <Border Grid.Column="1" Style="{StaticResource StepCircle}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=4}">
+                            <Grid>
+                                <TextBlock Text="4" Style="{StaticResource StepNumber}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=4}" />
+                                <TextBlock Text="&#xE73E;" Style="{StaticResource StepCheck}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=4}" />
+                            </Grid>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource StepTrack}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=4}" />
+                    </Grid>
+                    <TextBlock Grid.Row="1" Text="DBeaver" Style="{StaticResource StepLabel}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=4}" />
+                </Grid>
+
+                <Grid Grid.Column="4">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource StepTrack}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=4}" />
+                        <Border Grid.Column="1" Style="{StaticResource StepCircle}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=5}">
+                            <Grid>
+                                <TextBlock Text="&#xE73E;" Style="{StaticResource StepNumber}" FontFamily="{DynamicResource IconFontFamily}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=5}" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+                    <TextBlock Grid.Row="1" Text="Pronto" Style="{StaticResource StepLabel}" Tag="{Binding CurrentStep, Converter={StaticResource StepStateConverter}, ConverterParameter=5}" />
+                </Grid>
             </Grid>
         </Border>
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="18" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Style="{StaticResource CardBorder}" Padding="30">
+            <Border Grid.Column="0" Style="{StaticResource CardBorder}" Padding="30,28">
                 <Grid>
-                    <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=1}">
-                        <TextBlock Text="01 / DEPENDÊNCIA" Style="{StaticResource EyebrowText}" />
-                        <TextBlock Text="Localizar Hoop CLI" Style="{StaticResource SectionHeading}" FontSize="23" Margin="0,7,0,10" />
-                        <TextBlock Text="O Hoop cria e mantém os túneis seguros usados pelo aplicativo. A verificação procura o executável nos locais instalados e no PATH atual do Windows."
-                                   Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" LineHeight="21" Margin="0,0,0,22" />
-                        <Button Content="Verificar Hoop" Command="{Binding CheckInstallationCommand}" Style="{StaticResource FluentButton}" HorizontalAlignment="Left" />
-                    </StackPanel>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                    <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=2}">
-                        <TextBlock Text="02 / IDENTIDADE" Style="{StaticResource EyebrowText}" />
-                        <TextBlock Text="Autenticar no Hoop" Style="{StaticResource SectionHeading}" FontSize="23" Margin="0,7,0,10" />
-                        <TextBlock Text="Seu navegador será aberto para concluir o login corporativo. O aplicativo aguarda o retorno seguro da CLI; nenhuma senha é armazenada aqui."
-                                   Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" LineHeight="21" Margin="0,0,0,22" />
-                        <Button Content="Abrir autenticação" Command="{Binding LoginCommand}" Style="{StaticResource FluentButton}" HorizontalAlignment="Left" />
-                    </StackPanel>
-
-                    <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=3}">
-                        <TextBlock Text="03 / CATÁLOGO" Style="{StaticResource EyebrowText}" />
-                        <TextBlock Text="Sincronizar conexões" Style="{StaticResource SectionHeading}" FontSize="23" Margin="0,7,0,10" />
-                        <TextBlock Text="Vamos consultar as conexões liberadas para sua conta e organizá-las por ambiente. Nenhum túnel será aberto durante esta etapa."
-                                   Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" LineHeight="21" Margin="0,0,0,22" />
-                        <Button Content="Buscar conexões disponíveis" Command="{Binding LoadConnectionsCommand}" Style="{StaticResource FluentButton}" HorizontalAlignment="Left" />
-                    </StackPanel>
-
-                    <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=4}">
-                        <TextBlock Text="04 / CLIENTE DE BANCO" Style="{StaticResource EyebrowText}" />
-                        <TextBlock Text="Detectar DBeaver" Style="{StaticResource SectionHeading}" FontSize="23" Margin="0,7,0,10" />
-                        <TextBlock Text="O sistema procura instalações tradicionais e também o pacote corporativo Microsoft Store/AppX. O DBeaver será usado para abrir os endpoints locais."
-                                   Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" LineHeight="21" Margin="0,0,0,22" />
-                        <StackPanel Orientation="Horizontal">
-                            <Button Content="Detectar automaticamente" Command="{Binding CheckDBeaverCommand}" Style="{StaticResource FluentButton}" Margin="0,0,8,0" />
-                            <Button Content="Selecionar manualmente" Command="{Binding BrowseDBeaverCommand}" Style="{StaticResource SecondaryButton}" />
+                    <Grid Grid.Row="0">
+                        <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=1}">
+                            <Grid Margin="0,0,0,18">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource StepIconBadge}"><TextBlock Text="&#xE756;" Style="{StaticResource StepIconGlyph}" /></Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <TextBlock Text="01 / DEPENDÊNCIA" Style="{StaticResource EyebrowText}" />
+                                    <TextBlock Text="Localizar Hoop CLI" Style="{StaticResource SectionHeading}" FontSize="23" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Style="{StaticResource StepBodyText}"
+                                       Text="O Hoop cria e mantém os túneis seguros usados pelo aplicativo. A verificação procura o executável nos locais instalados e no PATH atual do Windows." />
+                            <Border Style="{StaticResource DetailPanel}">
+                                <StackPanel>
+                                    <TextBlock Text="ONDE O APLICATIVO PROCURA" Style="{StaticResource EyebrowText}" FontSize="10" Margin="0,0,0,10" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="PATH do Windows, incluindo alterações feitas depois de abrir o aplicativo" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="Program Files, %LocalAppData% e a pasta do seu perfil" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="Registro do Windows e o comando where" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <Button Content="Verificar Hoop" Command="{Binding CheckInstallationCommand}" Style="{StaticResource FluentButton}" HorizontalAlignment="Left" Padding="20,9" />
                         </StackPanel>
-                        <TextBlock Text="{Binding DbeaverPath}" Foreground="{DynamicResource SuccessBrush}" FontFamily="{DynamicResource MonoFontFamily}" FontSize="11" TextWrapping="Wrap" Margin="0,16,0,0" />
-                    </StackPanel>
 
-                    <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=5}">
-                        <TextBlock Text="05 / CONCLUÍDO" Style="{StaticResource EyebrowText}" Foreground="{DynamicResource SuccessBrush}" />
-                        <TextBlock Text="Ambiente pronto" Style="{StaticResource SectionHeading}" FontSize="23" Margin="0,7,0,10" />
-                        <TextBlock Text="Tudo certo. No Dashboard você poderá abrir vários bancos ao mesmo tempo, acompanhar portas locais e encerrar cada túnel separadamente."
-                                   Foreground="{DynamicResource ForegroundSecondaryBrush}" TextWrapping="Wrap" LineHeight="21" Margin="0,0,0,22" />
-                        <Button Content="Ir para a central de conexões" Command="{Binding FinishCommand}" Style="{StaticResource FluentButton}" HorizontalAlignment="Left" />
-                    </StackPanel>
+                        <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=2}">
+                            <Grid Margin="0,0,0,18">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource StepIconBadge}"><TextBlock Text="&#xE77B;" Style="{StaticResource StepIconGlyph}" /></Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <TextBlock Text="02 / IDENTIDADE" Style="{StaticResource EyebrowText}" />
+                                    <TextBlock Text="Autenticar no Hoop" Style="{StaticResource SectionHeading}" FontSize="23" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Style="{StaticResource StepBodyText}"
+                                       Text="Seu navegador será aberto para concluir o login corporativo. O aplicativo aguarda o retorno seguro da CLI; nenhuma senha é armazenada aqui." />
+                            <Border Style="{StaticResource DetailPanel}">
+                                <StackPanel>
+                                    <TextBlock Text="COMO FUNCIONA" Style="{StaticResource EyebrowText}" FontSize="10" Margin="0,0,0,10" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="O login acontece no navegador padrão, pelo provedor da companhia" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="O aplicativo aguarda até cinco minutos pela confirmação" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="O token fica sob a guarda do próprio Hoop CLI, fora deste aplicativo" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <Button Content="Abrir autenticação" Command="{Binding LoginCommand}" Style="{StaticResource FluentButton}" HorizontalAlignment="Left" Padding="20,9" />
+                        </StackPanel>
+
+                        <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=3}">
+                            <Grid Margin="0,0,0,18">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource StepIconBadge}"><TextBlock Text="&#xE7B8;" Style="{StaticResource StepIconGlyph}" /></Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <TextBlock Text="03 / CATÁLOGO" Style="{StaticResource EyebrowText}" />
+                                    <TextBlock Text="Sincronizar conexões" Style="{StaticResource SectionHeading}" FontSize="23" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Style="{StaticResource StepBodyText}"
+                                       Text="Vamos consultar as conexões liberadas para sua conta e organizá-las por ambiente. Nenhum túnel será aberto durante esta etapa." />
+                            <Border Style="{StaticResource DetailPanel}">
+                                <StackPanel>
+                                    <TextBlock Text="O QUE SERÁ FEITO" Style="{StaticResource EyebrowText}" FontSize="10" Margin="0,0,0,10" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="Somente leitura do catálogo autorizado para a sua conta" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="Agrupamento automático por ambiente: DEV, STG e PRD" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="Compatível com versões novas e antigas do Hoop CLI" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <Button Content="Buscar conexões disponíveis" Command="{Binding LoadConnectionsCommand}" Style="{StaticResource FluentButton}" HorizontalAlignment="Left" Padding="20,9" />
+                        </StackPanel>
+
+                        <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=4}">
+                            <Grid Margin="0,0,0,18">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource StepIconBadge}"><TextBlock Text="&#xE968;" Style="{StaticResource StepIconGlyph}" /></Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <TextBlock Text="04 / CLIENTE DE BANCO" Style="{StaticResource EyebrowText}" />
+                                    <TextBlock Text="Detectar DBeaver" Style="{StaticResource SectionHeading}" FontSize="23" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Style="{StaticResource StepBodyText}"
+                                       Text="O sistema procura instalações tradicionais e também o pacote corporativo Microsoft Store/AppX. O DBeaver será usado para abrir os endpoints locais." />
+                            <Border Style="{StaticResource DetailPanel}">
+                                <StackPanel>
+                                    <TextBlock Text="COMO O DBEAVER SERÁ USADO" Style="{StaticResource EyebrowText}" FontSize="10" Margin="0,0,0,10" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="A conexão é enviada para a janela já aberta, sem criar outra" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="A senha temporária não é salva no DBeaver" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="Arquivos internos do DBeaver não são alterados" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Detectar automaticamente" Command="{Binding CheckDBeaverCommand}" Style="{StaticResource FluentButton}" Padding="20,9" Margin="0,0,9,0" />
+                                <Button Content="Selecionar manualmente" Command="{Binding BrowseDBeaverCommand}" Style="{StaticResource SecondaryButton}" Padding="20,9" />
+                            </StackPanel>
+                            <Border Background="{DynamicResource SuccessSurfaceBrush}" BorderBrush="{DynamicResource SuccessBrush}" BorderThickness="1"
+                                    CornerRadius="8" Padding="13,10" Margin="0,16,0,0"
+                                    Visibility="{Binding DbeaverPath, Converter={StaticResource NullToVisibilityConverter}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <TextBlock Text="&#xE930;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource SuccessBrush}"
+                                               FontSize="14" VerticalAlignment="Top" />
+                                    <TextBlock Grid.Column="1" Text="{Binding DbeaverPath}" Foreground="{DynamicResource SuccessBrush}"
+                                               FontFamily="{DynamicResource MonoFontFamily}" FontSize="11" TextWrapping="Wrap" />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+
+                        <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=5}">
+                            <Grid Margin="0,0,0,18">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource StepIconBadge}" Background="{DynamicResource SuccessSurfaceBrush}" BorderBrush="{DynamicResource SuccessBrush}">
+                                    <TextBlock Text="&#xE930;" Style="{StaticResource StepIconGlyph}" Foreground="{DynamicResource SuccessBrush}" />
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <TextBlock Text="05 / CONCLUÍDO" Style="{StaticResource EyebrowText}" Foreground="{DynamicResource SuccessBrush}" />
+                                    <TextBlock Text="Ambiente pronto" Style="{StaticResource SectionHeading}" FontSize="23" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Style="{StaticResource StepBodyText}"
+                                       Text="Tudo certo. No Dashboard você poderá abrir vários bancos ao mesmo tempo, acompanhar portas locais e encerrar cada túnel separadamente." />
+                            <Border Style="{StaticResource DetailPanel}">
+                                <StackPanel>
+                                    <TextBlock Text="A PARTIR DE AGORA" Style="{StaticResource EyebrowText}" FontSize="10" Margin="0,0,0,10" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="Cada banco recebe uma porta local exclusiva em 127.0.0.1" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="Túneis instáveis são recuperados automaticamente" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="Ao sair do aplicativo, todos os túneis são encerrados" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <Button Content="Ir para a central de conexões" Command="{Binding FinishCommand}" Style="{StaticResource FluentButton}" HorizontalAlignment="Left" Padding="20,9" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,14,0,0">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE72E;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBlock Text="Nenhuma etapa altera configurações do Hoop ou do DBeaver."
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
 
             <StackPanel Grid.Column="2">
                 <Border Style="{StaticResource CardBorder}" Background="{DynamicResource AccentSoftBrush}" Margin="0,0,0,14">
                     <StackPanel>
-                        <TextBlock Text="STATUS ATUAL" Style="{StaticResource EyebrowText}" />
-                        <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" LineHeight="20" Margin="0,8,0,0" />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="&#xE946;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource AccentBrush}"
+                                       FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock Text="STATUS ATUAL" Style="{StaticResource EyebrowText}" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" LineHeight="20" />
                         <ProgressBar IsIndeterminate="True" Height="3" Margin="0,16,0,0"
                                      Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}"
                                      Foreground="{DynamicResource AccentBrush}" Background="{DynamicResource SurfaceSecondaryBrush}" />
                     </StackPanel>
                 </Border>
+
                 <Border Style="{StaticResource CardBorder}" Padding="18">
                     <StackPanel>
-                        <TextBlock Text="SEGURANÇA" Style="{StaticResource EyebrowText}" />
-                        <TextBlock Text="Credenciais temporárias" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" Margin="0,7,0,5" />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="&#xE72E;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource SuccessBrush}"
+                                       FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock Text="SEGURANÇA" Style="{StaticResource EyebrowText}" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <TextBlock Text="Credenciais temporárias" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" Margin="0,0,0,6" />
                         <TextBlock Text="Tokens e senhas de banco não são gravados em disco. Os dados existem apenas enquanto o túnel estiver ativo."
                                    Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" TextWrapping="Wrap" LineHeight="17" />
+                        <Border Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="7" Padding="11,9" Margin="0,13,0,0">
+                            <!-- Grid, não StackPanel horizontal: o StackPanel dá largura infinita
+                                 ao filho e o TextWrapping nunca chega a agir, cortando o texto. -->
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="&#xE81C;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                           FontSize="11" VerticalAlignment="Top" Margin="0,1,8,0" />
+                                <TextBlock Grid.Column="1" Text="A senha copiada sai da área de transferência em 30 segundos."
+                                           Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="10" TextWrapping="Wrap" LineHeight="15" />
+                            </Grid>
+                        </Border>
                     </StackPanel>
                 </Border>
             </StackPanel>

@@ -36,14 +36,16 @@
 
         <Grid Margin="0,0,0,22">
             <StackPanel>
-                <TextBlock Text="Sessions" Style="{StaticResource PageTitle}" />
+                <!-- O título dizia "Sessions", que é a outra tela do menu. -->
+                <TextBlock Text="OPERAÇÃO LOCAL" Style="{StaticResource EyebrowText}" />
+                <TextBlock Text="Logs" Style="{StaticResource PageTitle}" Margin="0,3,0,0" />
                 <TextBlock Text="Acompanhe a operação local do Hoop em tempo real. Credenciais e tokens nunca aparecem aqui."
-                           Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,7,0,0" />
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,5,0,0" />
             </StackPanel>
             <Button HorizontalAlignment="Right" VerticalAlignment="Center" Command="{Binding OpenLogsFolderCommand}"
                     Style="{StaticResource SecondaryButton}" Padding="13,8" ToolTip="Abrir os arquivos completos no Windows">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xED25;" FontFamily="Segoe Fluent Icons" FontSize="15" Margin="0,0,8,0" />
+                    <TextBlock Text="&#xED25;" FontFamily="{DynamicResource IconFontFamily}" FontSize="15" Margin="0,0,8,0" />
                     <TextBlock Text="Pasta de logs" />
                 </StackPanel>
             </Button>
@@ -56,15 +58,24 @@
                     <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="ESPAÇO UTILIZADO" Style="{StaticResource EyebrowText}" FontSize="9" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xEDA2;" Style="{StaticResource MetricIconGlyph}" />
+                        <TextBlock Text="ESPAÇO UTILIZADO" Style="{StaticResource EyebrowText}" FontSize="9" VerticalAlignment="Center" />
+                    </StackPanel>
                     <TextBlock Text="{Binding StorageUsed}" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" Margin="0,4,0,0" />
                 </StackPanel>
                 <StackPanel Grid.Column="1">
-                    <TextBlock Text="ARQUIVOS" Style="{StaticResource EyebrowText}" FontSize="9" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE7C3;" Style="{StaticResource MetricIconGlyph}" />
+                        <TextBlock Text="ARQUIVOS" Style="{StaticResource EyebrowText}" FontSize="9" VerticalAlignment="Center" />
+                    </StackPanel>
                     <TextBlock Text="{Binding LogFileCount}" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" Margin="0,4,0,0" />
                 </StackPanel>
                 <StackPanel Grid.Column="2">
-                    <TextBlock Text="REGISTRO MAIS ANTIGO" Style="{StaticResource EyebrowText}" FontSize="9" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE81C;" Style="{StaticResource MetricIconGlyph}" />
+                        <TextBlock Text="REGISTRO MAIS ANTIGO" Style="{StaticResource EyebrowText}" FontSize="9" VerticalAlignment="Center" />
+                    </StackPanel>
                     <TextBlock Text="{Binding OldestLogDate}" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" Margin="0,4,0,0" />
                 </StackPanel>
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0">
@@ -83,7 +94,7 @@
             <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8">
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition Width="*" /><ColumnDefinition Width="42" /></Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                    <TextBlock Text="&#xE721;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource ForegroundSecondaryBrush}"
                                FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     <TextBox Grid.Column="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                              Background="Transparent" BorderThickness="0" Foreground="{DynamicResource ForegroundBrush}"
@@ -96,7 +107,7 @@
                     </TextBlock>
                     <Button Grid.Column="2" Command="{Binding ClearSearchCommand}" Style="{StaticResource NavigationButton}"
                             Visibility="{Binding HasSearchText, Converter={StaticResource BooleanToVisibilityConverter}}" Padding="0" Margin="4">
-                        <TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons" FontSize="12" HorizontalAlignment="Center" />
+                        <TextBlock Text="&#xE711;" FontFamily="{DynamicResource IconFontFamily}" FontSize="12" HorizontalAlignment="Center" />
                     </Button>
                 </Grid>
             </Border>
@@ -164,8 +175,9 @@
                     <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" />
                         <Style.Triggers><DataTrigger Binding="{Binding FilteredEntries.IsEmpty}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
                     </Style></StackPanel.Style>
-                    <TextBlock Text="&#xE9D9;" FontFamily="Segoe Fluent Icons" FontSize="28" Foreground="{DynamicResource ForegroundSecondaryBrush}" HorizontalAlignment="Center" />
-                    <TextBlock Text="Nenhum evento corresponde aos filtros" Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,9,0,0" />
+                    <TextBlock Text="&#xE9D9;" Style="{StaticResource EmptyStateGlyph}" />
+                    <TextBlock Text="Nenhum evento corresponde aos filtros" Style="{StaticResource EmptyStateTitle}" />
+                    <TextBlock Text="Ajuste a busca ou escolha outro nível para ver mais registros." Style="{StaticResource EmptyStateText}" />
                 </StackPanel>
             </Grid>
         </Border>

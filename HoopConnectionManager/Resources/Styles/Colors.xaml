@@ -33,5 +33,8 @@
     <FontFamily x:Key="DefaultFontFamily">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="DisplayFontFamily">Bahnschrift, Segoe UI Semibold</FontFamily>
     <FontFamily x:Key="MonoFontFamily">Cascadia Mono, Consolas</FontFamily>
+    <!-- Segoe Fluent Icons só existe no Windows 11. Sem o fallback para o Segoe MDL2
+         Assets, que acompanha o Windows 10, todo glifo vira um quadrado vazio. -->
+    <FontFamily x:Key="IconFontFamily">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
     <system:Double x:Key="DefaultFontSize">14</system:Double>
 </ResourceDictionary>

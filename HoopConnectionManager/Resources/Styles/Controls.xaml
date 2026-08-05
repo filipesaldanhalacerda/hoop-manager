@@ -106,16 +106,69 @@
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     </Style>
 
+    <!-- Sem Width/Height/LineHeight fixos: um LineHeight de 32 assenta o glifo na base
+         de uma caixa de 32px, deixando-o abaixo do rótulo. Deixando o TextBlock com o
+         tamanho natural do glifo, o VerticalAlignment centraliza ícone e rótulo pelo
+         mesmo eixo, que é o que alinha os dois. -->
     <Style x:Key="SidebarIcon" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="Segoe Fluent Icons" />
+        <Setter Property="FontFamily" Value="{DynamicResource IconFontFamily}" />
         <Setter Property="FontSize" Value="17" />
-        <Setter Property="Width" Value="32" />
-        <Setter Property="Height" Value="32" />
         <Setter Property="TextAlignment" Value="Center" />
         <Setter Property="HorizontalAlignment" Value="Center" />
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="LineHeight" Value="32" />
         <Setter Property="Foreground" Value="{DynamicResource NavigationMutedBrush}" />
+    </Style>
+
+    <!-- Vocabulário visual compartilhado pelas telas: distintivo de ícone no cabeçalho
+         dos cartões, ícone das métricas e estado vazio. Mantém as páginas coerentes
+         entre si sem repetir os mesmos valores em cada arquivo. -->
+    <Style x:Key="CardIconBadge" TargetType="Border">
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Height" Value="34" />
+        <Setter Property="CornerRadius" Value="9" />
+        <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+
+    <Style x:Key="CardIconGlyph" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource IconFontFamily}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="MetricIconGlyph" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource IconFontFamily}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,7,0" />
+    </Style>
+
+    <Style x:Key="EmptyStateGlyph" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource IconFontFamily}" />
+        <Setter Property="FontSize" Value="30" />
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Opacity" Value="0.75" />
+    </Style>
+
+    <Style x:Key="EmptyStateTitle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,12,0,0" />
+    </Style>
+
+    <Style x:Key="EmptyStateText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="TextAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,5,0,0" />
     </Style>
 
     <Style x:Key="SidebarLabel" TargetType="TextBlock">
@@ -183,7 +236,7 @@
                                         <Grid Margin="11,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="20" /></Grid.ColumnDefinitions>
                                             <ContentPresenter Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}"
                                                               VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe Fluent Icons" FontSize="10"
+                                            <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="{DynamicResource IconFontFamily}" FontSize="10"
                                                        Foreground="{DynamicResource ForegroundSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                                         </Grid>
                                     </Border>

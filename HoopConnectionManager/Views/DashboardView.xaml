@@ -79,12 +79,12 @@
                                            Foreground="{DynamicResource ForegroundBrush}" VerticalAlignment="Center" Margin="9,0,4,0" TextTrimming="CharacterEllipsis" />
                                 <Button Grid.Column="1" Command="{Binding TogglePasswordVisibilityCommand}" ToolTip="Exibir ou ocultar senha"
                                         Style="{StaticResource NavigationButton}" Padding="0" Margin="1">
-                                    <TextBlock Text="{Binding PasswordVisibilityGlyph}" FontFamily="Segoe Fluent Icons" FontSize="13" HorizontalAlignment="Center" />
+                                    <TextBlock Text="{Binding PasswordVisibilityGlyph}" FontFamily="{DynamicResource IconFontFamily}" FontSize="13" HorizontalAlignment="Center" />
                                 </Button>
                                 <Button Grid.Column="2" ToolTip="Copiar senha temporária"
                                         Command="{Binding DataContext.CopyPasswordCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}" Style="{StaticResource NavigationButton}" Padding="0" Margin="1">
-                                    <TextBlock Text="&#xE8C8;" FontFamily="Segoe Fluent Icons" FontSize="13" HorizontalAlignment="Center" />
+                                    <TextBlock Text="&#xE8C8;" FontFamily="{DynamicResource IconFontFamily}" FontSize="13" HorizontalAlignment="Center" />
                                 </Button>
                             </Grid>
                         </Border>
@@ -115,7 +115,7 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE7B8;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="17" Margin="0,0,12,0" />
+                            <TextBlock Text="&#xE7B8;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="17" Margin="0,0,12,0" />
                             <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource ForegroundBrush}" FontWeight="SemiBold" FontSize="13" />
                         </StackPanel>
                         <TextBlock Text="{Binding Name}" Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" />
@@ -159,6 +159,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -168,38 +169,125 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel>
+                <TextBlock Text="CENTRAL DE CONEXÕES" Style="{StaticResource EyebrowText}" />
                 <TextBlock Text="Resources" Style="{StaticResource PageTitle}" Margin="0,3,0,0" />
-                <TextBlock Text="My Resources" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundBrush}" Margin="0,13,0,0" />
                 <TextBlock Text="Conecte bancos autorizados usando túneis locais seguros."
-                           Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,3,0,0" />
+                           Foreground="{DynamicResource ForegroundSecondaryBrush}" Margin="0,5,0,0" />
             </StackPanel>
-            <Border Grid.Column="1" Background="{DynamicResource SuccessSurfaceBrush}" CornerRadius="14"
-                    BorderBrush="{DynamicResource SuccessBrush}" BorderThickness="1" Padding="12,7" VerticalAlignment="Center">
+            <!-- O distintivo seguia o estilo de sucesso mesmo ao anunciar falha de
+                 sincronização; agora a cor acompanha CatalogSyncState. -->
+            <Border Grid.Column="1" CornerRadius="14" BorderThickness="1" Padding="12,7" VerticalAlignment="Center"
+                    ToolTip="{Binding CatalogSyncStatus}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CatalogSyncState}" Value="Ok">
+                                <Setter Property="Background" Value="{DynamicResource SuccessSurfaceBrush}" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CatalogSyncState}" Value="Error">
+                                <Setter Property="Background" Value="{DynamicResource WarningSurfaceBrush}" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource WarningBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE895;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource SuccessBrush}"
-                               FontSize="13" VerticalAlignment="Center" Margin="0,0,7,0" />
-                    <TextBlock Text="{Binding CatalogSyncStatus}" Foreground="{DynamicResource SuccessBrush}"
-                               FontSize="11" FontWeight="SemiBold" />
+                    <TextBlock FontFamily="{DynamicResource IconFontFamily}" FontSize="13" VerticalAlignment="Center" Margin="0,0,7,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="&#xE895;" />
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CatalogSyncState}" Value="Ok">
+                                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding CatalogSyncState}" Value="Error">
+                                        <Setter Property="Text" Value="&#xE7BA;" />
+                                        <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding CatalogSyncStatus}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CatalogSyncState}" Value="Ok">
+                                        <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding CatalogSyncState}" Value="Error">
+                                        <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
             </Border>
         </Grid>
 
-        <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,22">
+        <!-- Enquanto o ambiente não estiver completo, o caminho de volta ao assistente
+             fica visível na tela principal. Antes, quem concluísse o onboarding uma vez
+             nunca mais conseguia reabri-lo. -->
+        <Border Grid.Row="1" Background="{DynamicResource WarningSurfaceBrush}" BorderBrush="{DynamicResource WarningBrush}"
+                BorderThickness="1" CornerRadius="9" Padding="16,13" Margin="0,0,0,18"
+                Visibility="{Binding HasPendingSetup, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="&#xE7BA;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource WarningBrush}"
+                           FontSize="17" VerticalAlignment="Center" Margin="0,0,13,0" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="Ambiente ainda não está completo" Foreground="{DynamicResource ForegroundBrush}"
+                               FontWeight="SemiBold" FontSize="13" />
+                    <TextBlock Text="{Binding EnvironmentPendingSummary}" Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                               FontSize="11" TextWrapping="Wrap" Margin="0,3,12,0" />
+                </StackPanel>
+                <Button Grid.Column="2" Content="Retomar configuração" Command="{Binding OpenGuidedSetupCommand}"
+                        Style="{StaticResource FluentButton}" Padding="18,9" VerticalAlignment="Center"
+                        ToolTip="Abre a configuração guiada na primeira etapa pendente" />
+            </Grid>
+        </Border>
+
+        <UniformGrid Grid.Row="2" Columns="3" Margin="0,0,0,22">
             <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,1,0,1" CornerRadius="8,0,0,8" Padding="16">
-                <StackPanel><TextBlock Text="CONEXÕES DISPONÍVEIS" Style="{StaticResource MetricLabel}" />
-                    <TextBlock Text="{Binding TotalConnections}" FontSize="26" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundBrush}" /></StackPanel>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE7B8;" Style="{StaticResource MetricIconGlyph}" />
+                        <TextBlock Text="CONEXÕES DISPONÍVEIS" Style="{StaticResource MetricLabel}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding TotalConnections}" FontSize="26" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundBrush}" Margin="0,4,0,0" />
+                </StackPanel>
             </Border>
             <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="16">
-                <StackPanel><TextBlock Text="TÚNEIS ATIVOS" Style="{StaticResource MetricLabel}" />
-                    <TextBlock Text="{Binding ConnectedCount}" FontSize="26" FontWeight="SemiBold" Foreground="{DynamicResource SuccessBrush}" /></StackPanel>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE968;" Style="{StaticResource MetricIconGlyph}" />
+                        <TextBlock Text="TÚNEIS ATIVOS" Style="{StaticResource MetricLabel}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding ConnectedCount}" FontSize="26" FontWeight="SemiBold" Foreground="{DynamicResource SuccessBrush}" Margin="0,4,0,0" />
+                </StackPanel>
             </Border>
             <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,1,1" CornerRadius="0,8,8,0" Padding="16">
-                <StackPanel><TextBlock Text="ESTADO OPERACIONAL" Style="{StaticResource MetricLabel}" />
-                    <TextBlock Text="{Binding OperationalStatus}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundBrush}" Margin="0,5,0,0" /></StackPanel>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE9D9;" Style="{StaticResource MetricIconGlyph}" />
+                        <TextBlock Text="ESTADO OPERACIONAL" Style="{StaticResource MetricLabel}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding OperationalStatus}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource ForegroundBrush}" Margin="0,8,0,0" TextWrapping="Wrap" />
+                </StackPanel>
             </Border>
         </UniformGrid>
 
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <Grid Margin="0,0,0,10">
                     <TextBlock Text="Active Resources" Style="{StaticResource SectionTitle}" />
@@ -207,10 +295,15 @@
                                Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="11" VerticalAlignment="Bottom" />
                 </Grid>
 
-                <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="10" Padding="18" Margin="0,0,0,16"
+                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                        CornerRadius="10" Padding="18,26" Margin="0,0,0,16"
                         Visibility="{Binding ActiveConnections.Count, Converter={StaticResource CountToVisibilityConverter}}">
-                    <TextBlock Text="Nenhum banco conectado. Escolha uma conexão abaixo para abrir o primeiro túnel."
-                               Foreground="{DynamicResource ForegroundSecondaryBrush}" HorizontalAlignment="Center" />
+                    <StackPanel>
+                        <TextBlock Text="&#xE968;" Style="{StaticResource EmptyStateGlyph}" />
+                        <TextBlock Text="Nenhum banco conectado" Style="{StaticResource EmptyStateTitle}" />
+                        <TextBlock Text="Escolha uma conexão no catálogo abaixo para abrir o primeiro túnel."
+                                   Style="{StaticResource EmptyStateText}" />
+                    </StackPanel>
                 </Border>
 
                 <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True"
@@ -233,7 +326,7 @@
                             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="9" Height="46">
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="46" /><ColumnDefinition Width="*" /><ColumnDefinition Width="46" /></Grid.ColumnDefinitions>
-                            <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource AccentBrush}"
+                            <TextBlock Text="&#xE721;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource AccentBrush}"
                                        FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             <TextBox Grid.Column="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                                      Background="Transparent" BorderThickness="0" Foreground="{DynamicResource ForegroundBrush}"
@@ -252,7 +345,7 @@
                             <Button Grid.Column="2" Command="{Binding ClearSearchCommand}" ToolTip="Limpar busca"
                                     Visibility="{Binding HasSearchText, Converter={StaticResource BooleanToVisibilityConverter}}"
                                     Style="{StaticResource NavigationButton}" Padding="0" Margin="4">
-                                <TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons" FontSize="12" HorizontalAlignment="Center" />
+                                <TextBlock Text="&#xE711;" FontFamily="{DynamicResource IconFontFamily}" FontSize="12" HorizontalAlignment="Center" />
                             </Button>
                         </Grid>
                     </Border>
@@ -263,7 +356,7 @@
                         Visibility="{Binding HasCatalogMessage, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <TextBlock Text="&#xE7BA;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource WarningBrush}"
+                        <TextBlock Text="&#xE7BA;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource WarningBrush}"
                                    FontSize="15" VerticalAlignment="Top" />
                         <TextBlock Grid.Column="1" Text="{Binding CatalogMessage}" Foreground="{DynamicResource ForegroundBrush}"
                                    TextWrapping="Wrap" FontSize="12" />

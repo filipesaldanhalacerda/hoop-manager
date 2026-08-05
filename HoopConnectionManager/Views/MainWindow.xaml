@@ -119,11 +119,11 @@
                     <Button Command="{Binding ShowSecurityDetailsCommand}" HorizontalAlignment="Right" VerticalAlignment="Center"
                             Style="{StaticResource NavigationButton}" Padding="10,7" ToolTip="Entenda como seus dados são protegidos">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE72E;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource SuccessBrush}"
+                            <TextBlock Text="&#xE72E;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource SuccessBrush}"
                                        FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center" />
                             <TextBlock Text="Integração local segura" Foreground="{DynamicResource ForegroundSecondaryBrush}"
                                        FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            <TextBlock Text="&#xE70D;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                            <TextBlock Text="&#xE70D;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource ForegroundSecondaryBrush}"
                                        FontSize="9" Margin="8,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
@@ -147,7 +147,7 @@
             </Border.Style>
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="30" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="30" /></Grid.ColumnDefinitions>
-                <TextBlock Text="{Binding NotificationGlyph}" FontFamily="Segoe Fluent Icons" FontSize="17" VerticalAlignment="Top" Margin="1,2,0,0">
+                <TextBlock Text="{Binding NotificationGlyph}" FontFamily="{DynamicResource IconFontFamily}" FontSize="17" VerticalAlignment="Top" Margin="1,2,0,0">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
                             <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
@@ -165,7 +165,7 @@
                         Visibility="{Binding HasNotificationAction, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <Button Grid.Column="3" Command="{Binding DismissNotificationCommand}" Style="{StaticResource NavigationButton}"
                         Padding="0" Margin="2" ToolTip="Fechar aviso">
-                    <TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons" FontSize="11" HorizontalAlignment="Center" />
+                    <TextBlock Text="&#xE711;" FontFamily="{DynamicResource IconFontFamily}" FontSize="11" HorizontalAlignment="Center" />
                 </Button>
             </Grid>
         </Border>
@@ -185,7 +185,7 @@
                         <Grid.ColumnDefinitions><ColumnDefinition Width="52" /><ColumnDefinition Width="*" /><ColumnDefinition Width="36" /></Grid.ColumnDefinitions>
                         <Border Width="42" Height="42" CornerRadius="10" Background="{DynamicResource SuccessSurfaceBrush}"
                                 BorderBrush="{DynamicResource SuccessBrush}" BorderThickness="1" HorizontalAlignment="Left">
-                            <TextBlock Text="&#xE72E;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource SuccessBrush}"
+                            <TextBlock Text="&#xE72E;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource SuccessBrush}"
                                        FontSize="19" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -196,7 +196,7 @@
                         </StackPanel>
                         <Button Grid.Column="2" Command="{Binding HideSecurityDetailsCommand}" Style="{StaticResource NavigationButton}"
                                 Padding="0" ToolTip="Fechar">
-                            <TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons" FontSize="12" HorizontalAlignment="Center" />
+                            <TextBlock Text="&#xE711;" FontFamily="{DynamicResource IconFontFamily}" FontSize="12" HorizontalAlignment="Center" />
                         </Button>
                     </Grid>
 
