@@ -17,6 +17,9 @@
 
   <ItemGroup>
     <Resource Include="Assets\AppIcon.ico" />
+    <!-- Script oficial de instalação do Hoop, embutido para o assistente poder
+         instalar sem depender de o desenvolvedor baixar o arquivo antes. -->
+    <EmbeddedResource Include="Resources\Scripts\install-hoop.ps1" />
   </ItemGroup>
 
   <ItemGroup>

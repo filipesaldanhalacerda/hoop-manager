@@ -11,6 +11,7 @@ public sealed partial class WizardViewModel : ObservableObject
 {
     private readonly IHoopService _hoopService;
     private readonly ILoginService _loginService;
+    private readonly IInstallerService _installerService;
     private readonly INavigationService _navigationService;
     private readonly INotificationService _notificationService;
     private readonly IFirstRunService _firstRunService;
@@ -23,14 +24,31 @@ public sealed partial class WizardViewModel : ObservableObject
     private bool _isBusy;
 
     [ObservableProperty]
-    private string _statusMessage = "Clique em Verificar Instalação para localizar o Hoop.";
+    private string _statusMessage = "Clique em Verificar Hoop para localizar o executável.";
 
     [ObservableProperty]
     private bool _connectionsLoaded;
 
+    /// <summary>Verdadeiro depois de uma verificação que não encontrou o Hoop.</summary>
+    [ObservableProperty]
+    private bool _isHoopMissing;
+
+    [ObservableProperty]
+    private bool _isInstalling;
+
+    [ObservableProperty]
+    private string _installLog = string.Empty;
+
+    public bool HasInstallLog => !string.IsNullOrWhiteSpace(InstallLog);
+    public bool CanInstall => !IsInstalling;
+
+    partial void OnInstallLogChanged(string value) => OnPropertyChanged(nameof(HasInstallLog));
+    partial void OnIsInstallingChanged(bool value) => OnPropertyChanged(nameof(CanInstall));
+
     public WizardViewModel(
         IHoopService hoopService,
         ILoginService loginService,
+        IInstallerService installerService,
         INavigationService navigationService,
         INotificationService notificationService,
         IFirstRunService firstRunService,
@@ -38,10 +56,16 @@ public sealed partial class WizardViewModel : ObservableObject
     {
         _hoopService = hoopService;
         _loginService = loginService;
+        _installerService = installerService;
         _navigationService = navigationService;
         _notificationService = notificationService;
         _firstRunService = firstRunService;
         _logger = logger;
+
+        // A saída do instalador chega pela thread que lê o processo, não pela de interface.
+        _installerService.ProgressChanged += (_, e) =>
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                InstallLog += $"{e.Message}{Environment.NewLine}");
     }
 
     /// <summary>
@@ -87,17 +111,19 @@ public sealed partial class WizardViewModel : ObservableObject
             var installed = await _hoopService.IsInstalledAsync(timeout.Token);
             if (installed)
             {
+                IsHoopMissing = false;
                 StatusMessage = "Hoop encontrado. Continue para realizar o login.";
                 CurrentStep = 2;
                 return;
             }
 
-            StatusMessage = "Hoop não encontrado. Confirme a instalação e tente novamente.";
+            IsHoopMissing = true;
+            StatusMessage = "Hoop não encontrado. Instale pelo script oficial abaixo.";
             _notificationService.Show("Hoop não encontrado neste computador.", NotificationLevel.Warning);
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested)
         {
-            StatusMessage = "A verificação demorou demais. Tente novamente ou selecione o instalador.";
+            StatusMessage = "A verificação demorou demais. Tente novamente.";
             _notificationService.Show("A verificação do Hoop excedeu o limite de 15 segundos.", NotificationLevel.Warning);
         }
         catch (Exception ex)
@@ -109,6 +135,53 @@ public sealed partial class WizardViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Instala o Hoop com o script oficial da companhia, embutido no aplicativo. O script
+    /// baixa a versão indicada, extrai em <c>%UserProfile%\hoop</c> e registra o caminho
+    /// no PATH do usuário; nada exige privilégio de administrador.
+    /// </summary>
+    [RelayCommand]
+    private async Task InstallHoopAsync()
+    {
+        if (IsInstalling)
+        {
+            return;
+        }
+
+        IsInstalling = true;
+        InstallLog = string.Empty;
+        StatusMessage = "Instalando o Hoop. Isso pode levar alguns minutos.";
+
+        try
+        {
+            var installed = await _installerService.InstallBundledAsync();
+            if (installed)
+            {
+                IsHoopMissing = false;
+                StatusMessage = "Hoop instalado. Continue para realizar o login.";
+                _notificationService.Show("Hoop instalado com sucesso.");
+                CurrentStep = 2;
+                return;
+            }
+
+            // O script terminou sem erro, mas a detecção não achou o executável.
+            StatusMessage = "A instalação terminou, mas o Hoop não foi localizado. Verifique o registro abaixo.";
+            _notificationService.Show(
+                "A instalação terminou, mas o Hoop não foi localizado nesta máquina.",
+                NotificationLevel.Warning);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao instalar o Hoop pelo script oficial.");
+            StatusMessage = "Não foi possível concluir a instalação. Verifique o registro abaixo.";
+            _notificationService.Show($"Erro na instalação: {ex.Message}", NotificationLevel.Error);
+        }
+        finally
+        {
+            IsInstalling = false;
         }
     }
 

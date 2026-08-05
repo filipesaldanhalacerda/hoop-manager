@@ -6,7 +6,16 @@ namespace HoopConnectionManager.Services.Abstractions;
 public interface IInstallerService
 {
     event EventHandler<InstallerProgressEventArgs>? ProgressChanged;
+
+    /// <summary>Executa um instalador oficial escolhido pelo usuário.</summary>
     Task<bool> InstallAsync(string scriptPath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executa o script oficial embutido no aplicativo. É o caminho normal do assistente:
+    /// evita que o desenvolvedor precise localizar o arquivo antes de começar.
+    /// </summary>
+    Task<bool> InstallBundledAsync(CancellationToken cancellationToken = default);
+
     Task<bool> IsInstalledAsync(CancellationToken cancellationToken = default);
 }
 

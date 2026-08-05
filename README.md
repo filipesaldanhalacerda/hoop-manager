@@ -4,11 +4,17 @@ Aplicativo WPF para instalar, autenticar e operar exclusivamente o `hoop.exe` of
 
 ## Uso
 
-1. Execute o wizard e valide a instalação existente ou selecione um instalador oficial `.ps1`, `.cmd` ou `.bat`.
+1. Execute o wizard. Se o Hoop não for encontrado, o próprio assistente instala pelo script oficial da companhia, que acompanha o aplicativo.
 2. Faça login pelo comando `hoop login` e conclua a autenticação no navegador.
 3. Carregue as conexões e conecte. Em **Dados**, copie host, porta, database, usuário, senha ou a URL JDBC.
 4. Cole no gerenciador de banco de sua preferência.
 5. Desconecte pelo Dashboard ou encerre o aplicativo para finalizar todos os túneis.
+
+## Instalação do Hoop CLI
+
+O script oficial fica embutido em [`Resources/Scripts/install-hoop.ps1`](HoopConnectionManager/Resources/Scripts/install-hoop.ps1) e é executado pelo assistente quando o Hoop não é encontrado. Ele baixa a versão indicada de `releases.hoop.dev`, extrai em `%UserProfile%\hoop` e registra a pasta no PATH do usuário. **Não exige privilégio de administrador** e não altera nada fora do perfil.
+
+Como o script é uma cópia do que a companhia distribui, ele precisa ser atualizado aqui quando a versão de referência mudar. O assistente também aceita executar um instalador escolhido manualmente, pelo mesmo serviço.
 
 ## Escopo
 

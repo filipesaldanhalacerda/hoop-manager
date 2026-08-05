@@ -276,7 +276,49 @@
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
-                            <Button Content="Verificar Hoop" Command="{Binding CheckInstallationCommand}" Style="{StaticResource FluentButton}" HorizontalAlignment="Left" Padding="20,9" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Verificar Hoop" Command="{Binding CheckInstallationCommand}"
+                                        Style="{StaticResource FluentButton}" Padding="20,9" Margin="0,0,9,0" />
+                                <Button Content="Instalar Hoop" Command="{Binding InstallHoopCommand}"
+                                        Style="{StaticResource SecondaryButton}" Padding="20,9"
+                                        ToolTip="Executa o script oficial de instalação da companhia"
+                                        Visibility="{Binding IsHoopMissing, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        IsEnabled="{Binding CanInstall}" />
+                            </StackPanel>
+
+                            <!-- Só aparece depois de uma verificação sem sucesso: explicar a
+                                 instalação antes disso encheria a etapa de texto inútil. -->
+                            <Border Style="{StaticResource DetailPanel}" Margin="0,18,0,0"
+                                    Visibility="{Binding IsHoopMissing, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel>
+                                    <TextBlock Text="O QUE A INSTALAÇÃO FAZ" Style="{StaticResource EyebrowText}" FontSize="10" Margin="0,0,0,10" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="Baixa a versão oficial e extrai em %UserProfile%\hoop" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,7">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="Registra a pasta no PATH do seu usuário" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Style="{StaticResource DetailDot}" />
+                                        <TextBlock Style="{StaticResource DetailText}" Text="Não pede privilégio de administrador e não altera o sistema" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <ProgressBar IsIndeterminate="True" Height="3" Margin="0,16,0,0"
+                                         Visibility="{Binding IsInstalling, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                         Foreground="{DynamicResource AccentBrush}" Background="{DynamicResource SurfaceSecondaryBrush}" />
+
+                            <Border Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="9" Padding="14,12" Margin="0,14,0,0"
+                                    MaxHeight="150"
+                                    Visibility="{Binding HasInstallLog, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <TextBlock Text="{Binding InstallLog}" Foreground="{DynamicResource ForegroundSecondaryBrush}"
+                                               FontFamily="{DynamicResource MonoFontFamily}" FontSize="11" TextWrapping="Wrap" LineHeight="16" />
+                                </ScrollViewer>
+                            </Border>
                         </StackPanel>
 
                         <StackPanel Visibility="{Binding CurrentStep, Converter={StaticResource StepToVisibilityConverter}, ConverterParameter=2}">

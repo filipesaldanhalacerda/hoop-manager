@@ -20,6 +20,43 @@ public sealed class InstallerService : IInstallerService
         _logger = logger;
     }
 
+    internal const string BundledScriptResource = "HoopConnectionManager.Resources.Scripts.install-hoop.ps1";
+
+    /// <summary>
+    /// Grava o script oficial embutido num arquivo temporário e o executa. O PowerShell
+    /// precisa de um caminho em disco: não há como executar direto do recurso.
+    /// </summary>
+    public async Task<bool> InstallBundledAsync(CancellationToken cancellationToken = default)
+    {
+        var scriptPath = Path.Combine(
+            Path.GetTempPath(),
+            $"dev-access-center-install-hoop-{Guid.NewGuid():N}.ps1");
+
+        try
+        {
+            await using (var resource = typeof(InstallerService).Assembly.GetManifestResourceStream(BundledScriptResource)
+                ?? throw new InvalidOperationException("O script de instalação embutido não foi encontrado no aplicativo."))
+            await using (var file = File.Create(scriptPath))
+            {
+                await resource.CopyToAsync(file, cancellationToken);
+            }
+
+            _logger.LogInformation("Executando o script de instalação oficial embutido no aplicativo.");
+            return await InstallAsync(scriptPath, cancellationToken);
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(scriptPath)) File.Delete(scriptPath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _logger.LogWarning($"O script temporário de instalação não pôde ser removido: {scriptPath}");
+            }
+        }
+    }
+
     public async Task<bool> InstallAsync(string scriptPath, CancellationToken cancellationToken = default)
     {
         if (!File.Exists(scriptPath))
