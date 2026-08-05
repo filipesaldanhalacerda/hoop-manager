@@ -12,16 +12,36 @@ public sealed class DBeaverService : IDBeaverService
 {
     private const string DBeaverStorePackagePrefix = "DBeaverCorp.DBeaverCE_";
     private const int RestoreWindow = 9;
+    // O launcher encaminha e encerra em poucos segundos; a abertura fria costuma
+    // levar bem mais em máquinas corporativas com antivírus no caminho.
+    private static readonly TimeSpan ForwardingTimeout = TimeSpan.FromSeconds(45);
+    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(90);
     private readonly ISettingsService _settingsService;
     private readonly ILoggerService _logger;
     private readonly HashSet<string> _knownConnectionNames = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _connectionNamesLock = new();
     private readonly SemaphoreSlim _launchLock = new(1, 1);
+    private readonly Func<bool> _isDBeaverRunning;
+    private readonly Func<ProcessStartInfo, Process?> _startProcess;
 
     public DBeaverService(ISettingsService settingsService, ILoggerService logger)
+        : this(settingsService, logger, IsDBeaverRunning, Process.Start)
+    {
+    }
+
+    /// <summary>
+    /// Sobrecarga de teste: permite simular o DBeaver já aberto e observar o comando enviado.
+    /// </summary>
+    internal DBeaverService(
+        ISettingsService settingsService,
+        ILoggerService logger,
+        Func<bool> isDBeaverRunning,
+        Func<ProcessStartInfo, Process?> startProcess)
     {
         _settingsService = settingsService;
         _logger = logger;
+        _isDBeaverRunning = isDBeaverRunning;
+        _startProcess = startProcess;
     }
 
     public async Task<string?> LocateAsync(CancellationToken cancellationToken = default)
@@ -55,11 +75,13 @@ public sealed class DBeaverService : IDBeaverService
     public async Task<bool> UpdateConnectionConfigurationAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(info);
-        await OpenOrUpdateConnectionAsync(info, cancellationToken);
-        return true;
+        return await OpenOrUpdateConnectionAsync(info, cancellationToken);
     }
 
-    private async Task OpenOrUpdateConnectionAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken)
+    /// <summary>
+    /// Entrega a conexão ao DBeaver e informa se o endpoint atual chegou até ele.
+    /// </summary>
+    private async Task<bool> OpenOrUpdateConnectionAsync(DBeaverConnectionInfo info, CancellationToken cancellationToken)
     {
         await _launchLock.WaitAsync(cancellationToken);
         try
@@ -67,40 +89,59 @@ public sealed class DBeaverService : IDBeaverService
             ValidateConnectionInfo(info);
             var path = await LocateAsync(cancellationToken)
                 ?? throw new InvalidOperationException("DBeaver não encontrado. Configure o caminho manualmente.");
-            var running = IsDBeaverRunning();
+            var alreadyRunning = _isDBeaverRunning();
             var exists = IsKnownConnection(info.ConnectionName) || ConnectionExistsInWorkspace(info.ConnectionName);
 
-            // Algumas instalações MSIX não encaminham os argumentos para a janela
-            // existente e abrem uma nova interface a cada execução. Quando já há
-            // uma janela ativa, não iniciamos nenhum executável do DBeaver.
-            if (running)
-            {
-                TryActivateRunningInstance();
-                _logger.LogInformation(
-                    $"DBeaver já está aberto. A instância existente foi ativada para '{info.ConnectionName}' sem criar outra janela.");
-                return;
-            }
-
+            // O argumento -con precisa ser enviado sempre: é ele que cria a conexão ou
+            // aplica a porta e a senha temporárias desta sessão. Quando já existe uma
+            // janela aberta, o launcher encaminha o comando para ela e encerra sozinho,
+            // de modo que nenhuma segunda janela é criada. Também não usamos
+            // -reuseWorkspace: essa opção é justamente o que autoriza uma nova instância.
             var startInfo = new ProcessStartInfo
             {
                 FileName = GetCommandLineExecutable(path),
                 UseShellExecute = true
             };
-            // Sem -reuseWorkspace: o comportamento padrão do DBeaver encaminha o
-            // comando para a instância existente. Essa opção forçava novas instâncias.
             startInfo.ArgumentList.Add("-con");
             startInfo.ArgumentList.Add(BuildConnectionArgument(info, exists));
 
             cancellationToken.ThrowIfCancellationRequested();
-            _ = Process.Start(startInfo) ?? throw new InvalidOperationException("O Windows não conseguiu iniciar o DBeaver.");
+            using var launcher = _startProcess(startInfo)
+                ?? throw new InvalidOperationException("O Windows não conseguiu iniciar o DBeaver.");
             RememberConnection(info.ConnectionName);
 
-            await WaitForDBeaverStartupAsync(cancellationToken);
-            TryActivateRunningInstance();
+            if (alreadyRunning)
+            {
+                var forwarded = await WaitForForwardingAsync(launcher, cancellationToken);
+                TryActivateRunningInstance();
 
+                if (!forwarded)
+                {
+                    // Nenhuma distribuição testada chega aqui; se alguma variante empacotada
+                    // deixar de encaminhar, o registro identifica a máquina exata.
+                    _logger.LogWarning(
+                        $"O DBeaver não confirmou o encaminhamento de '{info.ConnectionName}' para a janela já aberta. " +
+                        "Verifique se esta instalação abriu uma segunda janela.");
+                    return false;
+                }
+
+                _logger.LogInformation(
+                    $"Conexão '{info.ConnectionName}' encaminhada à janela já aberta do DBeaver com a porta {info.Port}; " +
+                    "nenhuma janela adicional foi criada.");
+                return true;
+            }
+
+            if (!await WaitForDBeaverStartupAsync(cancellationToken))
+            {
+                _logger.LogWarning($"O DBeaver foi iniciado para '{info.ConnectionName}', mas a janela não apareceu no tempo esperado.");
+                return false;
+            }
+
+            TryActivateRunningInstance();
             _logger.LogInformation(exists
-                ? $"Conexão existente '{info.ConnectionName}' encaminhada à instância atual do DBeaver com endpoint atualizado."
-                : $"Conexão '{info.ConnectionName}' criada no DBeaver sem abrir uma instância adicional; a senha temporária não será salva.");
+                ? $"Conexão existente '{info.ConnectionName}' aberta no DBeaver com a porta {info.Port}."
+                : $"Conexão '{info.ConnectionName}' criada no DBeaver; a senha temporária não será salva.");
+            return true;
         }
         finally
         {
@@ -108,16 +149,53 @@ public sealed class DBeaverService : IDBeaverService
         }
     }
 
-    private static async Task WaitForDBeaverStartupAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// Aguarda o launcher repassar o comando à instância aberta e encerrar.
+    /// </summary>
+    private static async Task<bool> WaitForForwardingAsync(Process launcher, CancellationToken cancellationToken)
     {
-        for (var attempt = 0; attempt < 80; attempt++)
+        try
         {
-            if (IsDBeaverRunning()) return;
-            await Task.Delay(100, cancellationToken);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(ForwardingTimeout);
+            await launcher.WaitForExitAsync(timeout.Token);
+            return launcher.ExitCode == 0;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or SystemException)
+        {
+            // Sem handle utilizável não há como confirmar; o comando foi entregue mesmo assim.
+            return true;
         }
     }
 
-    private static string BuildConnectionArgument(DBeaverConnectionInfo info, bool exists)
+    private async Task<bool> WaitForDBeaverStartupAsync(CancellationToken cancellationToken)
+    {
+        var interval = TimeSpan.FromMilliseconds(200);
+        for (var elapsed = TimeSpan.Zero; elapsed < StartupTimeout; elapsed += interval)
+        {
+            if (_isDBeaverRunning()) return true;
+            await Task.Delay(interval, cancellationToken);
+        }
+
+        return _isDBeaverRunning();
+    }
+
+    /// <summary>
+    /// Monta o parâmetro <c>-con</c> aceito pelo DBeaver.
+    /// </summary>
+    /// <remarks>
+    /// RISCO ACEITO: a senha temporária trafega na linha de comando porque essa é a
+    /// única interface que o DBeaver oferece para receber uma conexão pronta. Enquanto
+    /// o launcher existe — poucos segundos — qualquer processo do mesmo usuário
+    /// consegue lê-la via Win32_Process, e agentes de EDR costumam registrar linhas de
+    /// comando. O que limita o impacto: a senha vale só para o túnel corrente, morre
+    /// com ele, e <c>savePassword=false</c> impede o DBeaver de gravá-la em disco.
+    /// </remarks>
+    internal static string BuildConnectionArgument(DBeaverConnectionInfo info, bool exists)
     {
         var create = (!exists).ToString().ToLowerInvariant();
         return string.Join('|', new[]
@@ -131,7 +209,7 @@ public sealed class DBeaverService : IDBeaverService
     private static string NormalizeDriverName(string driverName) =>
         driverName.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase) ? "postgresql" : driverName.ToLowerInvariant();
 
-    private static void ValidateConnectionInfo(DBeaverConnectionInfo info)
+    internal static void ValidateConnectionInfo(DBeaverConnectionInfo info)
     {
         if (string.IsNullOrWhiteSpace(info.ConnectionName) || string.IsNullOrWhiteSpace(info.Host)
             || string.IsNullOrWhiteSpace(info.Username) || info.Port is < 1 or > 65535)
