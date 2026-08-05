@@ -5,6 +5,7 @@ using System.Windows.Data;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using HoopConnectionManager.Helpers;
 using HoopConnectionManager.Models;
 using HoopConnectionManager.Services.Abstractions;
 
@@ -668,26 +669,8 @@ public sealed partial class DashboardViewModel : ObservableObject
         }
     }
 
-    private bool FilterConnection(object? obj)
-    {
-        if (obj is not ConnectionViewModel connection)
-        {
-            return false;
-        }
-
-        if (string.IsNullOrWhiteSpace(SearchText))
-        {
-            return true;
-        }
-
-        var query = SearchText.Trim();
-        return connection.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
-            || connection.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
-            || connection.EnvironmentGroup.Contains(query, StringComparison.OrdinalIgnoreCase)
-            || connection.Type.Contains(query, StringComparison.OrdinalIgnoreCase)
-            || connection.ConnectionStateLabel.Contains(query, StringComparison.OrdinalIgnoreCase)
-            || connection.LocalEndpoint.Contains(query, StringComparison.OrdinalIgnoreCase);
-    }
+    private bool FilterConnection(object? obj) =>
+        obj is ConnectionViewModel connection && ConnectionSearch.Matches(connection, SearchText);
 
     private void UpdateSearchResultSummary()
     {
