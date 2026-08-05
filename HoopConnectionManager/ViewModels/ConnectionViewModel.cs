@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using HoopConnectionManager.Configuration;
 using HoopConnectionManager.Models;
 using HoopConnectionManager.Services.Abstractions;
 
@@ -25,6 +26,29 @@ public sealed partial class ConnectionViewModel : ObservableObject
     public bool CanConnect => Status is ConnectionStatus.Disconnected or ConnectionStatus.Error;
     public bool CanDisconnect => Status is ConnectionStatus.Connected or ConnectionStatus.Degraded or ConnectionStatus.Reconnecting;
     public string LocalEndpoint => Host is not null && Port is not null ? $"{Host}:{Port}" : "Aguardando túnel";
+
+    public string Database => ApplicationConstants.DefaultDatabaseName;
+
+    public bool HasCredentials => Host is not null && Port is not null;
+
+    public string JdbcUrl => HasCredentials
+        ? $"jdbc:postgresql://{Host}:{Port}/{Database}"
+        : "Aguardando túnel";
+
+    /// <summary>
+    /// Bloco pronto para colar em qualquer lugar, para quem prefere montar a conexão
+    /// à mão. Inclui a senha, então quem copia agenda a limpeza da área de transferência.
+    /// </summary>
+    public string ConnectionSummary => HasCredentials
+        ? string.Join(System.Environment.NewLine,
+            $"Conexão: {DisplayName}",
+            $"Host: {Host}",
+            $"Porta: {Port}",
+            $"Database: {Database}",
+            $"Usuário: {Username}",
+            $"Senha: {Password}",
+            $"URL: {JdbcUrl}")
+        : string.Empty;
     public string PasswordDisplay => string.IsNullOrEmpty(Password)
         ? "Indisponível"
         : IsPasswordVisible ? Password : "••••••••••••";
@@ -55,9 +79,22 @@ public sealed partial class ConnectionViewModel : ObservableObject
         OnPropertyChanged(nameof(ConnectionStateLabel));
     }
 
-    partial void OnHostChanged(string? value) => OnPropertyChanged(nameof(LocalEndpoint));
-    partial void OnPortChanged(int? value) => OnPropertyChanged(nameof(LocalEndpoint));
-    partial void OnPasswordChanged(string? value) => OnPropertyChanged(nameof(PasswordDisplay));
+    partial void OnHostChanged(string? value) => NotifyEndpointChanged();
+    partial void OnPortChanged(int? value) => NotifyEndpointChanged();
+
+    partial void OnPasswordChanged(string? value)
+    {
+        OnPropertyChanged(nameof(PasswordDisplay));
+        OnPropertyChanged(nameof(ConnectionSummary));
+    }
+
+    private void NotifyEndpointChanged()
+    {
+        OnPropertyChanged(nameof(LocalEndpoint));
+        OnPropertyChanged(nameof(HasCredentials));
+        OnPropertyChanged(nameof(JdbcUrl));
+        OnPropertyChanged(nameof(ConnectionSummary));
+    }
     partial void OnIsPasswordVisibleChanged(bool value)
     {
         OnPropertyChanged(nameof(PasswordDisplay));

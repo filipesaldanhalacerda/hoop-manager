@@ -589,22 +589,52 @@ public sealed partial class DashboardViewModel : ObservableObject
     [RelayCommand]
     private void CopyUsername(ConnectionViewModel? connection) => CopyTemporary(connection?.Username, "Usuário");
     [RelayCommand]
-    private void CopyPassword(ConnectionViewModel? connection) => CopyTemporary(connection?.Password, "Senha");
+    private void CopyDatabase(ConnectionViewModel? connection) => CopyTemporary(connection?.Database, "Database");
+    [RelayCommand]
+    private void CopyJdbcUrl(ConnectionViewModel? connection) => CopyTemporary(connection?.JdbcUrl, "URL JDBC");
+    [RelayCommand]
+    private void CopyPassword(ConnectionViewModel? connection) => CopyTemporary(connection?.Password, "Senha", containsSecret: true);
 
-    private void CopyTemporary(string? value, string label)
+    /// <summary>Bloco completo para quem vai montar a conexão à mão no DBeaver.</summary>
+    [RelayCommand]
+    private void CopyConnectionSummary(ConnectionViewModel? connection) =>
+        CopyTemporary(connection?.ConnectionSummary, "Dados da conexão", containsSecret: true);
+
+    [ObservableProperty]
+    private ConnectionViewModel? _connectionGuideTarget;
+
+    [ObservableProperty]
+    private bool _isConnectionGuideVisible;
+
+    [RelayCommand]
+    private void ShowConnectionGuide(ConnectionViewModel? connection)
+    {
+        if (connection is null)
+        {
+            return;
+        }
+
+        ConnectionGuideTarget = connection;
+        IsConnectionGuideVisible = true;
+    }
+
+    [RelayCommand]
+    private void HideConnectionGuide() => IsConnectionGuideVisible = false;
+
+    private void CopyTemporary(string? value, string label, bool containsSecret = false)
     {
         if (string.IsNullOrEmpty(value)) { _notificationService.Show("Conecte primeiro para obter os dados temporários.", NotificationLevel.Warning); return; }
         try
         {
             System.Windows.Clipboard.SetText(value);
-            if (label == "Senha")
+            if (containsSecret)
             {
                 var cancellation = new CancellationTokenSource();
                 var previous = Interlocked.Exchange(ref _clipboardClearCancellation, cancellation);
                 previous?.Cancel();
                 previous?.Dispose();
                 _ = ClearSensitiveClipboardAsync(value, cancellation.Token);
-                _notificationService.Show("Senha copiada. Ela será removida da área de transferência em 30 segundos.");
+                _notificationService.Show($"{label} copiado. Será removido da área de transferência em 30 segundos.");
             }
             else
             {

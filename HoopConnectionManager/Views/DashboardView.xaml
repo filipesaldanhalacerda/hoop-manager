@@ -15,6 +15,52 @@
 
         <Style x:Key="SectionTitle" TargetType="TextBlock" BasedOn="{StaticResource SectionHeading}" />
 
+        <Style x:Key="GuideFieldLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundSecondaryBrush}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="GuideFieldValue" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+            <Setter Property="FontFamily" Value="{DynamicResource MonoFontFamily}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+
+        <Style x:Key="GuideCopyButton" TargetType="Button" BasedOn="{StaticResource NavigationButton}">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="ToolTip" Value="Copiar" />
+        </Style>
+
+        <Style x:Key="GuideStepBadge" TargetType="Border">
+            <Setter Property="Width" Value="21" />
+            <Setter Property="Height" Value="21" />
+            <Setter Property="CornerRadius" Value="11" />
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+
+        <Style x:Key="GuideStepNumber" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="GuideStepText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="LineHeight" Value="19" />
+            <Setter Property="Margin" Value="11,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
         <DataTemplate x:Key="ActiveTunnelTemplate">
             <Border Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
@@ -90,6 +136,10 @@
                         </Border>
                     </StackPanel>
                     <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Dados" ToolTip="Ver e copiar os dados para criar a conexão no DBeaver"
+                                Command="{Binding DataContext.ShowConnectionGuideCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}"
+                                Style="{StaticResource SecondaryButton}" Padding="11,7" Margin="0,0,6,0" />
                         <Button Content="Desconectar" ToolTip="Encerrar este túnel"
                                 Command="{Binding DataContext.DisconnectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
@@ -402,5 +452,173 @@
                 </ListView>
             </StackPanel>
         </ScrollViewer>
+
+        <!-- Painel de dados da conexão. O Hoop não informa o database, então mostramos o
+             banco de manutenção padrão e deixamos claro o que muda a cada túnel. -->
+        <Grid Grid.RowSpan="4" Panel.ZIndex="60"
+              Visibility="{Binding IsConnectionGuideVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border Background="#99070B14" />
+            <Border Width="620" MaxHeight="660" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="{DynamicResource ElevatedBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="14" Padding="26"
+                    DataContext="{Binding ConnectionGuideTarget}">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="30" ShadowDepth="8" Opacity="0.35" Color="#000000" />
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource CardIconBadge}" Width="42" Height="42" CornerRadius="11">
+                            <TextBlock Text="&#xE968;" Style="{StaticResource CardIconGlyph}" FontSize="19" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="DADOS DA CONEXÃO" Style="{StaticResource EyebrowText}" />
+                            <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource ForegroundBrush}"
+                                       FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding Name}" Margin="0,2,0,0" />
+                        </StackPanel>
+                        <Button Grid.Column="2" Style="{StaticResource NavigationButton}" Padding="0" Width="32" Height="32"
+                                ToolTip="Fechar"
+                                Command="{Binding DataContext.HideConnectionGuideCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                            <TextBlock Text="&#xE711;" FontFamily="{DynamicResource IconFontFamily}" FontSize="12" HorizontalAlignment="Center" />
+                        </Button>
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <Border Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="10" Padding="16,12">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,9">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="82" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="HOST" Style="{StaticResource GuideFieldLabel}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Host}" Style="{StaticResource GuideFieldValue}" />
+                                        <Button Grid.Column="2" Style="{StaticResource GuideCopyButton}"
+                                                Command="{Binding DataContext.CopyHostCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <TextBlock Text="&#xE8C8;" FontFamily="{DynamicResource IconFontFamily}" FontSize="13" HorizontalAlignment="Center" />
+                                        </Button>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,9">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="82" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="PORTA" Style="{StaticResource GuideFieldLabel}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Port}" Style="{StaticResource GuideFieldValue}" />
+                                        <Button Grid.Column="2" Style="{StaticResource GuideCopyButton}"
+                                                Command="{Binding DataContext.CopyPortCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <TextBlock Text="&#xE8C8;" FontFamily="{DynamicResource IconFontFamily}" FontSize="13" HorizontalAlignment="Center" />
+                                        </Button>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,9">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="82" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="DATABASE" Style="{StaticResource GuideFieldLabel}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Database}" Style="{StaticResource GuideFieldValue}" />
+                                        <Button Grid.Column="2" Style="{StaticResource GuideCopyButton}"
+                                                Command="{Binding DataContext.CopyDatabaseCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <TextBlock Text="&#xE8C8;" FontFamily="{DynamicResource IconFontFamily}" FontSize="13" HorizontalAlignment="Center" />
+                                        </Button>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,9">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="82" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="USUÁRIO" Style="{StaticResource GuideFieldLabel}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Username}" Style="{StaticResource GuideFieldValue}" />
+                                        <Button Grid.Column="2" Style="{StaticResource GuideCopyButton}"
+                                                Command="{Binding DataContext.CopyUsernameCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <TextBlock Text="&#xE8C8;" FontFamily="{DynamicResource IconFontFamily}" FontSize="13" HorizontalAlignment="Center" />
+                                        </Button>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,9">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="82" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="SENHA" Style="{StaticResource GuideFieldLabel}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding PasswordDisplay}" Style="{StaticResource GuideFieldValue}" />
+                                        <Button Grid.Column="2" Style="{StaticResource GuideCopyButton}" ToolTip="Exibir ou ocultar"
+                                                Command="{Binding TogglePasswordVisibilityCommand}">
+                                            <TextBlock Text="{Binding PasswordVisibilityGlyph}" FontFamily="{DynamicResource IconFontFamily}" FontSize="13" HorizontalAlignment="Center" />
+                                        </Button>
+                                        <Button Grid.Column="3" Style="{StaticResource GuideCopyButton}"
+                                                Command="{Binding DataContext.CopyPasswordCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <TextBlock Text="&#xE8C8;" FontFamily="{DynamicResource IconFontFamily}" FontSize="13" HorizontalAlignment="Center" />
+                                        </Button>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="82" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="URL JDBC" Style="{StaticResource GuideFieldLabel}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding JdbcUrl}" Style="{StaticResource GuideFieldValue}" ToolTip="{Binding JdbcUrl}" />
+                                        <Button Grid.Column="2" Style="{StaticResource GuideCopyButton}"
+                                                Command="{Binding DataContext.CopyJdbcUrlCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <TextBlock Text="&#xE8C8;" FontFamily="{DynamicResource IconFontFamily}" FontSize="13" HorizontalAlignment="Center" />
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="PRIMEIRA VEZ NO DBEAVER" Style="{StaticResource EyebrowText}" Margin="2,20,0,12" />
+
+                            <Grid Margin="2,0,0,10">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource GuideStepBadge}"><TextBlock Text="1" Style="{StaticResource GuideStepNumber}" /></Border>
+                                <TextBlock Grid.Column="1" Style="{StaticResource GuideStepText}"
+                                           Text="No DBeaver, abra Database › New Database Connection e escolha PostgreSQL." />
+                            </Grid>
+                            <Grid Margin="2,0,0,10">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource GuideStepBadge}"><TextBlock Text="2" Style="{StaticResource GuideStepNumber}" /></Border>
+                                <TextBlock Grid.Column="1" Style="{StaticResource GuideStepText}"
+                                           Text="Preencha Host, Porta, Database e Usuário com os valores acima." />
+                            </Grid>
+                            <Grid Margin="2,0,0,10">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource GuideStepBadge}"><TextBlock Text="3" Style="{StaticResource GuideStepNumber}" /></Border>
+                                <TextBlock Grid.Column="1" Style="{StaticResource GuideStepText}"
+                                           Text="Cole a senha e deixe &quot;Save password&quot; desmarcado — ela vale só enquanto este túnel existir." />
+                            </Grid>
+                            <Grid Margin="2,0,0,10">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource GuideStepBadge}"><TextBlock Text="4" Style="{StaticResource GuideStepNumber}" /></Border>
+                                <TextBlock Grid.Column="1" Style="{StaticResource GuideStepText}"
+                                           Text="Marque &quot;Show all databases&quot; para navegar os demais bancos do servidor." />
+                            </Grid>
+                            <Grid Margin="2,0,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource GuideStepBadge}"><TextBlock Text="5" Style="{StaticResource GuideStepNumber}" /></Border>
+                                <TextBlock Grid.Column="1" Style="{StaticResource GuideStepText}"
+                                           Text="Use Test Connection para confirmar e conclua em Finish." />
+                            </Grid>
+
+                            <Border Background="{DynamicResource WarningSurfaceBrush}" BorderBrush="{DynamicResource WarningBrush}"
+                                    BorderThickness="1" CornerRadius="9" Padding="13,11" Margin="0,20,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <TextBlock Text="&#xE7BA;" FontFamily="{DynamicResource IconFontFamily}" Foreground="{DynamicResource WarningBrush}"
+                                               FontSize="14" VerticalAlignment="Top" Margin="0,1,10,0" />
+                                    <TextBlock Grid.Column="1" Foreground="{DynamicResource ForegroundBrush}" TextWrapping="Wrap" FontSize="11" LineHeight="17"
+                                               Text="A porta e a senha valem apenas para este túnel: ao reconectar, confira os dados aqui antes de usar a conexão salva. O database mostrado é o banco de manutenção padrão — se o seu recurso usar outro, ajuste no DBeaver." />
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Grid Grid.Row="2" Margin="0,20,0,0">
+                        <Button Content="Copiar todos os dados" HorizontalAlignment="Left" Padding="18,9"
+                                Style="{StaticResource SecondaryButton}"
+                                ToolTip="Copia host, porta, database, usuário, senha e URL de uma vez"
+                                Command="{Binding DataContext.CopyConnectionSummaryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}" />
+                        <Button Content="Fechar" HorizontalAlignment="Right" Padding="20,9"
+                                Style="{StaticResource FluentButton}"
+                                Command="{Binding DataContext.HideConnectionGuideCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>
