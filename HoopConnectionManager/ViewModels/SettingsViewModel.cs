@@ -56,6 +56,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _hoopCompatibilityStatus = "Verificando...";
     [ObservableProperty] private bool _isHoopDiagnosticsBusy;
 
+    /// <summary>Evita disparar um segundo login enquanto o diagnóstico ainda roda.</summary>
+    public bool CanReauthenticate => !IsHoopDiagnosticsBusy;
+
+    partial void OnIsHoopDiagnosticsBusyChanged(bool value) => OnPropertyChanged(nameof(CanReauthenticate));
+
     public IReadOnlyList<string> Themes { get; } = ["Auto", "Light", "Dark"];
 
     public SettingsViewModel(

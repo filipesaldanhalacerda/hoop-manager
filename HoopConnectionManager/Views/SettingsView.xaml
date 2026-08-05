@@ -149,8 +149,28 @@
                         </Grid>
                         <TextBlock Text="{Binding HoopCompatibilityStatus}" Foreground="{DynamicResource ForegroundSecondaryBrush}"
                                    FontSize="10" TextWrapping="Wrap" Margin="0,2,0,14" />
-                        <Button Content="Autenticar novamente" Command="{Binding ReauthenticateHoopCommand}"
-                                Style="{StaticResource FluentButton}" HorizontalAlignment="Left" Padding="18,9" />
+                        <!-- Continua acessível com a sessão válida, porque trocar de conta ou
+                             renovar antes de expirar são motivos legítimos. Mas deixa de ser a
+                             ação em destaque: anunciar "autentique" logo abaixo de um
+                             "Autenticado" em verde manda o usuário refazer o login à toa. -->
+                        <Button Command="{Binding ReauthenticateHoopCommand}" HorizontalAlignment="Left"
+                                Padding="18,9" IsEnabled="{Binding CanReauthenticate}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource FluentButton}">
+                                    <Setter Property="Content" Value="Autenticar agora" />
+                                    <Setter Property="ToolTip" Value="Abre o navegador para concluir a autenticação corporativa" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsHoopAuthenticated}" Value="True">
+                                            <Setter Property="Content" Value="Reautenticar" />
+                                            <Setter Property="ToolTip" Value="Renove a sessão ou entre com outra conta" />
+                                            <Setter Property="Background" Value="{DynamicResource SurfaceSecondaryBrush}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
                     </StackPanel>
                 </Border>
 
