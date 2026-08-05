@@ -12,7 +12,18 @@ public sealed class Connection
     public string Type { get; init; } = string.Empty;
     public bool IsFavorite { get; set; }
     public DateTime? LastUsedAt { get; set; }
-    public string DisplayName => string.IsNullOrWhiteSpace(FriendlyName) ? Name : FriendlyName;
+
+    /// <summary>Partes do nome no padrão corporativo, quando ele segue esse padrão.</summary>
+    public HoopConnectionName? NameParts =>
+        HoopConnectionName.TryParse(Name, out var parsed) ? parsed : null;
+
+    /// <summary>
+    /// Nome exibido. Prefere o apelido vindo do catálogo; sem ele, usa o rótulo curto
+    /// derivado do padrão corporativo; e só então o nome completo.
+    /// </summary>
+    public string DisplayName => string.IsNullOrWhiteSpace(FriendlyName)
+        ? NameParts?.ShortLabel ?? Name
+        : FriendlyName;
 
     public string EnvironmentGroup => Environment switch
     {

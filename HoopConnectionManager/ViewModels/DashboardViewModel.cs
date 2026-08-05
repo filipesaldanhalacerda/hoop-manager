@@ -221,7 +221,9 @@ public sealed partial class DashboardViewModel : ObservableObject
             var synchronized = await _dbeaverService.UpdateConnectionConfigurationAsync(new DBeaverConnectionInfo
             {
                 ConnectionId = connection?.Id ?? connectionName,
-                ConnectionName = connectionName,
+                // O DBeaver recebe o rótulo curto: o nome completo do Hoop passa de
+                // cinquenta caracteres e fica ilegível na árvore de conexões.
+                ConnectionName = connection?.DisplayName ?? connectionName,
                 Host = tunnel.Credentials.Host,
                 Port = tunnel.Credentials.Port,
                 Username = tunnel.Credentials.Username,
@@ -432,7 +434,7 @@ public sealed partial class DashboardViewModel : ObservableObject
                     var opened = await _dbeaverService.OpenConnectionAsync(new DBeaverConnectionInfo
                     {
                         ConnectionId = connection.Id,
-                        ConnectionName = connection.Name,
+                        ConnectionName = connection.DisplayName,
                         Host = tunnel.Credentials.Host,
                         Port = tunnel.Credentials.Port,
                         Username = tunnel.Credentials.Username,

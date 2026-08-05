@@ -29,6 +29,18 @@ public sealed partial class ConnectionViewModel : ObservableObject
 
     public string Database => ApplicationConstants.DefaultDatabaseName;
 
+    /// <summary>Leitura do nome no padrão corporativo, para o painel de dados.</summary>
+    public bool HasNameParts => _connection.NameParts is not null;
+    public string TeamName => _connection.NameParts?.Team ?? string.Empty;
+    public string DatabaseName => _connection.NameParts?.SuggestedDatabase ?? string.Empty;
+    public string AccessLabel => _connection.NameParts?.Access.ToUpperInvariant() switch
+    {
+        "RW" => "leitura e escrita",
+        "RO" or "R" => "somente leitura",
+        "W" => "somente escrita",
+        _ => string.Empty
+    };
+
     public bool HasCredentials => Host is not null && Port is not null;
 
     public string JdbcUrl => HasCredentials

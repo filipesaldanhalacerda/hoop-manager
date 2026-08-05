@@ -561,6 +561,39 @@
                                 </StackPanel>
                             </Border>
 
+                            <!-- Leitura do padrão corporativo do nome. O nome completo passa
+                                 de cinquenta caracteres e a parte que identifica o banco fica
+                                 no meio, justo onde a lista trunca. -->
+                            <Border Background="{DynamicResource SurfaceSecondaryBrush}" CornerRadius="10" Padding="16,12" Margin="0,12,0,0"
+                                    Visibility="{Binding HasNameParts, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel>
+                                    <TextBlock Text="O QUE ESTE NOME SIGNIFICA" Style="{StaticResource EyebrowText}" FontSize="10" Margin="0,0,0,10" />
+                                    <Grid Margin="0,0,0,7">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="82" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="BANCO" Style="{StaticResource GuideFieldLabel}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding DatabaseName}" Style="{StaticResource GuideFieldValue}" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,7">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="82" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="AMBIENTE" Style="{StaticResource GuideFieldLabel}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding EnvironmentGroup}" Style="{StaticResource GuideFieldValue}" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,7">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="82" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="TIME" Style="{StaticResource GuideFieldLabel}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding TeamName}" Style="{StaticResource GuideFieldValue}" />
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="82" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="ACESSO" Style="{StaticResource GuideFieldLabel}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding AccessLabel}" Style="{StaticResource GuideFieldValue}" />
+                                    </Grid>
+                                    <TextBlock Text="{Binding Name, StringFormat=Nome completo no Hoop: {0}}"
+                                               Foreground="{DynamicResource ForegroundSecondaryBrush}" FontSize="10"
+                                               TextWrapping="Wrap" Margin="0,11,0,0" />
+                                </StackPanel>
+                            </Border>
+
                             <TextBlock Text="PRIMEIRA VEZ NO DBEAVER" Style="{StaticResource EyebrowText}" Margin="2,20,0,12" />
 
                             <Grid Margin="2,0,0,10">
